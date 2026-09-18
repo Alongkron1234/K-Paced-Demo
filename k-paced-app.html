@@ -107,7 +107,8 @@ input[type=range]::-moz-range-thumb:active{transform:scale(1.2);cursor:grabbing}
 <script>
 var S={tab:'home',view:'',paced:22000,free:8000,todayCap:380,todayUsed:240,days:17,
   fix:{moved:false,reimb:false,trim:false},to:null,amt:'',mode:'balanced'};
-var MODE={chill:['ชิล ๆ',0.07],balanced:['พอดี',0.18],aggressive:['จริงจัง',0.28]};
+var RANGE={chill:[0.05,0.10],balanced:[0.15,0.20],aggressive:[0.25,0.30]};
+var MODEN={chill:'ชิล ๆ',balanced:'พอดี',aggressive:'จริงจัง'};
 var PEOPLE=[
  {id:'mom',n:'แม่',s:'โอนประจำ · 14 ครั้ง',i:'แ',t:1},
  {id:'pook',n:'ปุ๊ก',s:'เพื่อน · เคยโอน 3 ครั้ง',i:'ป',t:1},
@@ -127,6 +128,13 @@ function health(){
   if(g>-300)return{k:'am',t:'ตึง',m:'เงินน่าจะไม่พอถึงสิ้นเดือน ถ้าใช้เท่าเดิม',c:'p-am',cls:'amb'};
   return{k:'dg',t:'ไม่พอ',m:'ถ้าใช้เท่านี้ เงินจะหมดก่อนเงินเดือนออก',c:'p-dg',cls:'dgr'};
 }
+// อัตราออมจริงถูกเลือกภายในกรอบของโหมด โดยปรับตามความเสี่ยงเงินขาดมือ (health()):
+// เสี่ยงต่ำ (สบาย) -> ขอบบนของกรอบ, เสี่ยงกลาง (ตึง) -> กลางกรอบ, เสี่ยงสูง (ไม่พอ) -> ขอบล่างของกรอบ
+function pickRate(mode){
+  var r=RANGE[mode],k=health().k;
+  var t=k==='ok'?1:k==='am'?0.5:0;
+  return r[0]+(r[1]-r[0])*t;
+}
 function go(t,v){S.tab=t;S.view=v||'';document.getElementById('cont').scrollTop=0;r()}
 
 function paintSlider(el){
@@ -139,8 +147,8 @@ function updatePaced(v){
   paintSlider(slider);
   document.getElementById('pacedBig').textContent=f(S.paced);
   document.getElementById('freeVal').textContent=f(S.free);
-  document.getElementById('modeEst').textContent='เดือนนี้จะเก็บให้ประมาณ '+f(S.paced*MODE[S.mode][1])+' ตัวเลขจริงปรับเองทุกเดือนตามที่คุณใช้จริง';
-  var fx=Math.min(8400,S.paced),sv=Math.round((S.paced-fx)*MODE[S.mode][1]);
+  document.getElementById('modeEst').textContent='เดือนนี้จะเก็บให้ประมาณ '+f(S.paced*pickRate(S.mode))+' (กรอบ '+Math.round(RANGE[S.mode][0]*100)+'–'+Math.round(RANGE[S.mode][1]*100)+'% ปรับตามความเสี่ยงเงินขาดมือของคุณตอนนี้)';
+  var fx=Math.min(8400,S.paced),sv=Math.round((S.paced-fx)*pickRate(S.mode));
   document.getElementById('fxVal').textContent=f(fx);
   document.getElementById('svVal').textContent=f(sv);
   document.getElementById('remVal').textContent=f(S.paced-fx-sv);
@@ -189,11 +197,11 @@ function r(){
     h+='<div class="why">เลื่อนกลับได้ตลอดเวลา ไม่มีการล็อก และเงินไม่ได้ออกจากบัญชีคุณไปไหน</div></div>';
 
     h+='<div class="c"><div class="lb" style="margin-bottom:8px">อยากออมแบบไหน</div><div class="seg">';
-    Object.keys(MODE).forEach(function(k){h+='<button class="'+(S.mode===k?'on':'')+'" onclick="S.mode=\''+k+'\';r()">'+MODE[k][0]+'</button>'});
-    h+='</div><div id="modeEst" style="font-size:12.5px;color:var(--ink2)">เดือนนี้จะเก็บให้ประมาณ '+f(S.paced*MODE[S.mode][1])+' ตัวเลขจริงปรับเองทุกเดือนตามที่คุณใช้จริง</div></div>';
+    Object.keys(RANGE).forEach(function(k){h+='<button class="'+(S.mode===k?'on':'')+'" onclick="S.mode=\''+k+'\';r()">'+MODEN[k]+' · '+Math.round(RANGE[k][0]*100)+'–'+Math.round(RANGE[k][1]*100)+'%</button>'});
+    h+='</div><div id="modeEst" style="font-size:12.5px;color:var(--ink2)">เดือนนี้จะเก็บให้ประมาณ '+f(S.paced*pickRate(S.mode))+' (กรอบ '+Math.round(RANGE[S.mode][0]*100)+'–'+Math.round(RANGE[S.mode][1]*100)+'% ปรับตามความเสี่ยงเงินขาดมือของคุณตอนนี้)</div></div>';
 
     h+='<div class="c"><div class="lb" style="margin-bottom:4px">เงินในแผนแบ่งไว้ยังไง</div>';
-    var fx=Math.min(8400,S.paced),sv=Math.round((S.paced-fx)*MODE[S.mode][1]);
+    var fx=Math.min(8400,S.paced),sv=Math.round((S.paced-fx)*pickRate(S.mode));
     h+='<div class="li"><div><div>ค่าใช้จ่ายประจำ</div><div class="s">ค่าหอ ค่าน้ำค่าไฟ ค่าเน็ต</div></div><b id="fxVal">'+f(fx)+'</b></div>';
     h+='<div class="li"><div><div>เงินเก็บ</div><div class="s">ไม่แตะถ้าไม่จำเป็น</div></div><b id="svVal">'+f(sv)+'</b></div>';
     h+='<div class="li"><div><div>ไว้ใช้จ่าย</div><div class="s">ทยอยปล่อยเป็นรายวัน</div></div><b id="remVal">'+f(S.paced-fx-sv)+'</b></div></div>';
