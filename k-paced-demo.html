@@ -62,7 +62,14 @@ button.p{background:var(--kb);border-color:var(--kb);color:#fff;font-weight:500}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) button.p{color:#06210f}}
 button.s{background:transparent}
 select,input[type=number]{width:100%;font-family:inherit;font-size:14px;padding:9px 10px;border-radius:10px;border:1px solid var(--line2);background:var(--card);color:var(--ink)}
-input[type=range]{width:100%;accent-color:var(--kb)}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:99px;background:var(--line);margin:14px 0 6px;cursor:pointer;touch-action:none}
+input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:99px;background:transparent}
+input[type=range]::-moz-range-track{height:6px;border-radius:99px;background:var(--line)}
+input[type=range]::-moz-range-progress{height:6px;border-radius:99px 0 0 99px;background:var(--kb)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:24px;height:24px;border-radius:50%;background:var(--kb);border:3px solid var(--card);box-shadow:0 1px 3px rgba(0,0,0,.3);margin-top:-9px;cursor:grab;transition:transform .12s ease,box-shadow .12s ease}
+input[type=range]::-webkit-slider-thumb:active{transform:scale(1.2);cursor:grabbing;box-shadow:0 2px 8px rgba(0,0,0,.35)}
+input[type=range]::-moz-range-thumb{width:24px;height:24px;border-radius:50%;background:var(--kb);border:3px solid var(--card);box-shadow:0 1px 3px rgba(0,0,0,.3);cursor:grab;transition:transform .12s ease}
+input[type=range]::-moz-range-thumb:active{transform:scale(1.2);cursor:grabbing}
 label.ck{display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:var(--ink2);cursor:pointer;margin-top:10px}
 label.ck input{margin-top:3px;accent-color:var(--kb)}
 .fl{margin-bottom:11px}
@@ -143,6 +150,18 @@ function calc(){
 function srcName(k){var c=calc();return k==='free'?'ยอดอิสระ':k==='spend'?'ใช้ได้ตามจังหวะ (K-Paced)':'เงินออม / สำรอง (K-Paced)'}
 function srcBal(k){var c=calc();return k==='free'?c.free:k==='spend'?c.spend:c.save}
 
+function paintSlider(el){
+  var pct=(+el.value-el.min)/(el.max-el.min)*100;
+  el.style.background='linear-gradient(to right,var(--kb) '+pct+'%,var(--line) '+pct+'%)';
+}
+function updatePaced(v){
+  S.paced=+v;
+  var slider=document.getElementById('pacedSlider');
+  paintSlider(slider);
+  document.getElementById('pacedAmt').textContent=f(S.paced);
+  document.getElementById('pacedFree').textContent=f(S.total-S.paced);
+}
+
 function render(){
   var c=calc(); document.getElementById('topAmt').textContent=f(S.total)+'.00';
   var v=document.getElementById('view'), h='';
@@ -160,9 +179,9 @@ function render(){
   }
   else if(S.view==='alloc'){
     h+='<button class="back" onclick="go(\'home\')">← กลับ</button>';
-    h+='<div class="sec"><div class="lab">ยกให้ K-Paced ดูแล</div><div class="amt">'+f(S.paced)+'</div>';
-    h+='<input type="range" min="0" max="30000" step="1000" value="'+S.paced+'" oninput="S.paced=+this.value;render()">';
-    h+='<div class="tot"><span>ยอดอิสระที่เหลือ</span><b>'+f(c.free)+'</b></div>';
+    h+='<div class="sec"><div class="lab">ยกให้ K-Paced ดูแล</div><div class="amt" id="pacedAmt">'+f(S.paced)+'</div>';
+    h+='<input id="pacedSlider" type="range" min="0" max="30000" step="100" value="'+S.paced+'" oninput="updatePaced(this.value)">';
+    h+='<div class="tot"><span>ยอดอิสระที่เหลือ</span><b id="pacedFree">'+f(c.free)+'</b></div>';
     h+='<div style="font-size:11.5px;color:var(--ink3)">ปรับได้ตลอดเวลา ถอนกลับมาเป็นยอดอิสระได้ทันที ไม่มีการล็อกถาวร</div></div>';
     h+='<div class="sec"><div class="lab">โหมดการออม</div>';
     ['chill','balanced','aggressive'].forEach(function(m){
@@ -193,6 +212,8 @@ function render(){
     h+='<button class="s" onclick="go(\'transfer\')">ลองเคสอื่น</button><div style="height:8px"></div><button class="p" onclick="go(\'home\')">กลับหน้าแรก</button>';
   }
   v.innerHTML=h;
+  var sl=document.getElementById('pacedSlider');
+  if(sl)paintSlider(sl);
   var ch=document.getElementById('chips');
   ch.innerHTML=[
     ['โอนให้แม่จากยอดอิสระ','free','mom',2000,false],
