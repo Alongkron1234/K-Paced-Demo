@@ -71,14 +71,7 @@ button.t{background:none;color:var(--ink2);border:none;font-weight:400;font-size
 .seg{display:flex;gap:6px;background:var(--soft);padding:4px;border-radius:12px;margin-bottom:12px}
 .seg button{flex:1;border:none;background:none;font-family:inherit;font-size:12.5px;padding:8px 0;border-radius:9px;cursor:pointer;color:var(--ink2)}
 .seg button.on{background:var(--card);color:var(--ink);font-weight:600}
-input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:99px;background:var(--line);margin:16px 0 8px;cursor:pointer;touch-action:none}
-input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:99px;background:transparent}
-input[type=range]::-moz-range-track{height:6px;border-radius:99px;background:var(--line)}
-input[type=range]::-moz-range-progress{height:6px;border-radius:99px 0 0 99px;background:var(--kb)}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:26px;height:26px;border-radius:50%;background:var(--kb);border:3px solid var(--card);box-shadow:0 1px 3px rgba(0,0,0,.3);margin-top:-10px;cursor:grab;transition:transform .12s ease,box-shadow .12s ease}
-input[type=range]::-webkit-slider-thumb:active{transform:scale(1.2);cursor:grabbing;box-shadow:0 2px 8px rgba(0,0,0,.35)}
-input[type=range]::-moz-range-thumb{width:26px;height:26px;border-radius:50%;background:var(--kb);border:3px solid var(--card);box-shadow:0 1px 3px rgba(0,0,0,.3);cursor:grab;transition:transform .12s ease}
-input[type=range]::-moz-range-thumb:active{transform:scale(1.2);cursor:grabbing}
+input[type=range]{width:100%;accent-color:var(--kb);margin:6px 0}
 .why{font-size:12.5px;color:var(--ink2);background:var(--soft);border-radius:12px;padding:11px 13px;margin-top:10px}
 .bk{background:none;border:none;font-family:inherit;font-size:14px;color:var(--ink2);cursor:pointer;padding:2px 0 10px}
 </style>
@@ -106,11 +99,8 @@ input[type=range]::-moz-range-thumb:active{transform:scale(1.2);cursor:grabbing}
 
 <script>
 var S={tab:'home',view:'',paced:22000,free:8000,todayCap:380,todayUsed:240,days:17,
-  fix:{moved:false,reimb:false,trim:false},to:null,amt:'',mode:'balanced',
-  monthIdx:8,monthlyRisk:0.22};
-var MONTHS=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
-var RANGE={chill:[0.05,0.10],balanced:[0.15,0.20],aggressive:[0.25,0.30]};
-var MODEN={chill:'ชิล ๆ',balanced:'พอดี',aggressive:'จริงจัง'};
+  fix:{moved:false,reimb:false,trim:false},to:null,amt:'',mode:'balanced'};
+var MODE={chill:['ชิล ๆ',0.07],balanced:['พอดี',0.18],aggressive:['จริงจัง',0.28]};
 var PEOPLE=[
  {id:'mom',n:'แม่',s:'โอนประจำ · 14 ครั้ง',i:'แ',t:1},
  {id:'pook',n:'ปุ๊ก',s:'เพื่อน · เคยโอน 3 ครั้ง',i:'ป',t:1},
@@ -130,37 +120,7 @@ function health(){
   if(g>-300)return{k:'am',t:'ตึง',m:'เงินน่าจะไม่พอถึงสิ้นเดือน ถ้าใช้เท่าเดิม',c:'p-am',cls:'amb'};
   return{k:'dg',t:'ไม่พอ',m:'ถ้าใช้เท่านี้ เงินจะหมดก่อนเงินเดือนออก',c:'p-dg',cls:'dgr'};
 }
-// อัตราออมจริงถูกเลือกภายในกรอบของโหมด โดย AI วิเคราะห์พฤติกรรมการใช้จ่าย/รายได้ของเดือนที่ผ่านมา
-// แล้วสรุปออกมาเป็น "ความเสี่ยงเงินขาดมือของเดือนนี้" (monthlyRisk) — คำนวณครั้งเดียวต่อเดือน ไม่ใช่ขยับตามการกดใช้เงินระหว่างเดือน
-// เสี่ยงต่ำ -> ขอบบนของกรอบ (ออมได้เต็มที่), เสี่ยงสูง -> ขอบล่าง (ไม่บีบตัวเองจนเกินไป)
-function pickRate(mode){
-  var r=RANGE[mode],risk=S.monthlyRisk;
-  var t=risk<0.15?1:risk<0.35?0.5:0;
-  return r[0]+(r[1]-r[0])*t;
-}
-function newMonth(){
-  S.monthIdx=(S.monthIdx+1)%12;
-  S.monthlyRisk=Math.random();
-  r();
-}
 function go(t,v){S.tab=t;S.view=v||'';document.getElementById('cont').scrollTop=0;r()}
-
-function paintSlider(el){
-  var pct=(+el.value-el.min)/(el.max-el.min)*100;
-  el.style.background='linear-gradient(to right,var(--kb) '+pct+'%,var(--line) '+pct+'%)';
-}
-function updatePaced(v){
-  S.paced=+v;S.free=30000-S.paced;
-  var slider=document.getElementById('pacedSlider');
-  paintSlider(slider);
-  document.getElementById('pacedBig').textContent=f(S.paced);
-  document.getElementById('freeVal').textContent=f(S.free);
-  document.getElementById('modeEst').textContent='เดือนนี้จะเก็บให้ประมาณ '+f(S.paced*pickRate(S.mode))+' (กรอบ '+Math.round(RANGE[S.mode][0]*100)+'–'+Math.round(RANGE[S.mode][1]*100)+'% ปรับตามพฤติกรรมเดือนนี้ · ความเสี่ยงเงินขาดมือ '+Math.round(S.monthlyRisk*100)+'%)';
-  var fx=Math.min(8400,S.paced),sv=Math.round((S.paced-fx)*pickRate(S.mode));
-  document.getElementById('fxVal').textContent=f(fx);
-  document.getElementById('svVal').textContent=f(sv);
-  document.getElementById('remVal').textContent=f(S.paced-fx-sv);
-}
 
 function r(){
   var h='',n=need(),H=health();
@@ -199,24 +159,20 @@ function r(){
     h+='<div style="margin-top:12px"><button class="b" onclick="go(\'home\')">เสร็จแล้ว</button></div>';
   }
   else if(S.tab==='plan'){
-    h+='<div class="c"><div class="lb">ให้ K-Paced ดูแล</div><div class="big" id="pacedBig">'+f(S.paced)+'</div>';
-    h+='<input id="pacedSlider" type="range" min="0" max="30000" step="100" value="'+S.paced+'" oninput="updatePaced(this.value)">';
-    h+='<div class="rowb" style="font-size:13px;color:var(--ink2)"><span>ใช้อิสระ</span><b id="freeVal" style="color:var(--ink)">'+f(S.free)+'</b></div>';
+    h+='<div class="c"><div class="lb">ให้ K-Paced ดูแล</div><div class="big">'+f(S.paced)+'</div>';
+    h+='<input type="range" min="0" max="30000" step="1000" value="'+S.paced+'" oninput="S.paced=+this.value;S.free=30000-S.paced;r()">';
+    h+='<div class="rowb" style="font-size:13px;color:var(--ink2)"><span>ใช้อิสระ</span><b style="color:var(--ink)">'+f(S.free)+'</b></div>';
     h+='<div class="why">เลื่อนกลับได้ตลอดเวลา ไม่มีการล็อก และเงินไม่ได้ออกจากบัญชีคุณไปไหน</div></div>';
 
-    h+='<div class="c"><div class="rowb"><div><div class="lb">AI วิเคราะห์พฤติกรรมเดือน '+MONTHS[S.monthIdx]+'</div><div class="mid" style="margin-top:2px">ความเสี่ยงเงินขาดมือ '+Math.round(S.monthlyRisk*100)+'%</div></div>'+
-      '<button class="b g" style="width:auto;padding:9px 14px;font-size:13px" onclick="newMonth()">จำลองเดือนถัดไป</button></div>'+
-      '<div style="font-size:11.5px;color:var(--ink3);margin-top:7px">มาจากการวิเคราะห์ประวัติรายรับ-รายจ่ายของเดือนก่อน ไม่เปลี่ยนตามการใช้เงินระหว่างเดือนนี้ — กด "จำลองเดือนถัดไป" เพื่อดูว่าเดือนหน้า AI ประเมินพฤติกรรมใหม่แล้วปรับสัดส่วนออมยังไง</div></div>';
-
     h+='<div class="c"><div class="lb" style="margin-bottom:8px">อยากออมแบบไหน</div><div class="seg">';
-    Object.keys(RANGE).forEach(function(k){h+='<button class="'+(S.mode===k?'on':'')+'" onclick="S.mode=\''+k+'\';r()">'+MODEN[k]+' · '+Math.round(RANGE[k][0]*100)+'–'+Math.round(RANGE[k][1]*100)+'%</button>'});
-    h+='</div><div id="modeEst" style="font-size:12.5px;color:var(--ink2)">เดือนนี้จะเก็บให้ประมาณ '+f(S.paced*pickRate(S.mode))+' (กรอบ '+Math.round(RANGE[S.mode][0]*100)+'–'+Math.round(RANGE[S.mode][1]*100)+'% ปรับตามพฤติกรรมเดือนนี้ · ความเสี่ยงเงินขาดมือ '+Math.round(S.monthlyRisk*100)+'%)</div></div>';
+    Object.keys(MODE).forEach(function(k){h+='<button class="'+(S.mode===k?'on':'')+'" onclick="S.mode=\''+k+'\';r()">'+MODE[k][0]+'</button>'});
+    h+='</div><div style="font-size:12.5px;color:var(--ink2)">เดือนนี้จะเก็บให้ประมาณ '+f(S.paced*MODE[S.mode][1])+' ตัวเลขจริงปรับเองทุกเดือนตามที่คุณใช้จริง</div></div>';
 
     h+='<div class="c"><div class="lb" style="margin-bottom:4px">เงินในแผนแบ่งไว้ยังไง</div>';
-    var fx=Math.min(8400,S.paced),sv=Math.round((S.paced-fx)*pickRate(S.mode));
-    h+='<div class="li"><div><div>ค่าใช้จ่ายประจำ</div><div class="s">ค่าหอ ค่าน้ำค่าไฟ ค่าเน็ต</div></div><b id="fxVal">'+f(fx)+'</b></div>';
-    h+='<div class="li"><div><div>เงินเก็บ</div><div class="s">ไม่แตะถ้าไม่จำเป็น</div></div><b id="svVal">'+f(sv)+'</b></div>';
-    h+='<div class="li"><div><div>ไว้ใช้จ่าย</div><div class="s">ทยอยปล่อยเป็นรายวัน</div></div><b id="remVal">'+f(S.paced-fx-sv)+'</b></div></div>';
+    var fx=Math.min(8400,S.paced),sv=Math.round((S.paced-fx)*MODE[S.mode][1]);
+    h+='<div class="li"><div><div>ค่าใช้จ่ายประจำ</div><div class="s">ค่าหอ ค่าน้ำค่าไฟ ค่าเน็ต</div></div><b>'+f(fx)+'</b></div>';
+    h+='<div class="li"><div><div>เงินเก็บ</div><div class="s">ไม่แตะถ้าไม่จำเป็น</div></div><b>'+f(sv)+'</b></div>';
+    h+='<div class="li"><div><div>ไว้ใช้จ่าย</div><div class="s">ทยอยปล่อยเป็นรายวัน</div></div><b>'+f(S.paced-fx-sv)+'</b></div></div>';
 
     h+='<div class="c"><div class="lb" style="margin-bottom:4px">กำลังจะถึง</div>';
     h+='<div class="li"><div><div>งานแต่งเพื่อน</div><div class="s">อีก 12 วัน · เตรียมไว้แล้ว</div></div><span class="pill p-ok">พร้อม</span></div>';
@@ -252,8 +208,6 @@ function r(){
   document.getElementById('cont').innerHTML=h;
   document.getElementById('nav').innerHTML=[['home','หน้าแรก','◉'],['plan','แผนเงิน','◐'],['send','โอนเงิน','↗']]
     .map(function(t){return '<button class="'+(S.tab===t[0]?'on':'')+'" onclick="go(\''+t[0]+'\')"><span class="ic">'+t[2]+'</span>'+t[1]+'</button>'}).join('');
-  var sl=document.getElementById('pacedSlider');
-  if(sl)paintSlider(sl);
 }
 function key(k){
   if(k==='←')S.amt=S.amt.slice(0,-1);

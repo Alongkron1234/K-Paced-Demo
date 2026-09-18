@@ -46,14 +46,7 @@ button:hover{border-color:var(--kb)}
 button.on{background:var(--kb);border-color:var(--kb);color:#fff;font-weight:500}
 :root[data-theme="dark"] button.on{color:#06210f}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) button.on{color:#06210f}}
-input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:99px;background:var(--line);margin:14px 0 6px;cursor:pointer;touch-action:none}
-input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:99px;background:transparent}
-input[type=range]::-moz-range-track{height:6px;border-radius:99px;background:var(--line)}
-input[type=range]::-moz-range-progress{height:6px;border-radius:99px 0 0 99px;background:var(--kb)}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:24px;height:24px;border-radius:50%;background:var(--kb);border:3px solid var(--card);box-shadow:0 1px 3px rgba(0,0,0,.3);margin-top:-9px;cursor:grab;transition:transform .12s ease,box-shadow .12s ease}
-input[type=range]::-webkit-slider-thumb:active{transform:scale(1.2);cursor:grabbing;box-shadow:0 2px 8px rgba(0,0,0,.35)}
-input[type=range]::-moz-range-thumb{width:24px;height:24px;border-radius:50%;background:var(--kb);border:3px solid var(--card);box-shadow:0 1px 3px rgba(0,0,0,.3);cursor:grab;transition:transform .12s ease}
-input[type=range]::-moz-range-thumb:active{transform:scale(1.2);cursor:grabbing}
+input[type=range]{width:100%;accent-color:var(--kb)}
 .badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:99px;font-weight:500}
 .b-ok{background:var(--kb-soft);color:var(--kb-d)} .b-w{background:var(--warn-soft);color:var(--warn)} .b-d{background:var(--danger-soft);color:var(--danger)}
 table{width:100%;border-collapse:collapse;font-size:13px}
@@ -120,7 +113,7 @@ tr:first-child td{border-top:none}
     <div class="card">
       <h2>ปรับจังหวะรายวัน</h2>
       <p class="cs">ลดเพดานใช้จ่ายรายวันลง <b id="pacev">0%</b> จากมัธยฐานเดิม</p>
-      <input id="paceSlider" type="range" min="0" max="30" step="2" value="0" oninput="S.pace=+this.value;paintSlider(this);run()">
+      <input type="range" min="0" max="30" step="2" value="0" oninput="S.pace=+this.value;run()">
       <div class="mini" id="pacenote"></div>
     </div>
 
@@ -178,10 +171,6 @@ var LEVERS=[
  {k:'free',n:'นับงานฟรีแลนซ์เป็นรายได้ที่วางแผนได้',d:'ความน่าเชื่อถือ 35% — เสี่ยงสูงถ้าพึ่งพา'}
 ];
 
-function paintSlider(el){
-  var pct=(+el.value-el.min)/(el.max-el.min)*100;
-  el.style.background='linear-gradient(to right,var(--kb) '+pct+'%,var(--line) '+pct+'%)';
-}
 function run(){
   var base=sim(S);
   document.getElementById('pshort').textContent=Math.round(base.p*100)+'%';
@@ -245,9 +234,8 @@ function fan(band){
   s+='<text x="'+(W-PR)+'" y="'+(H-8)+'" text-anchor="end" font-size="10.5" fill="var(--ink3)">เงินเดือนเข้า</text>';
   document.getElementById('fan').innerHTML=s;
 }
-function reset(){S={pace:0,ot:true,free:true,reimb:false,topup:false,sink:false,wed:true};var sl=document.getElementById('paceSlider');sl.value=0;paintSlider(sl);run()}
+function reset(){S={pace:0,ot:true,free:true,reimb:false,topup:false,sink:false,wed:true};document.querySelector('input[type=range]').value=0;run()}
 document.getElementById('bal').textContent=f(BAL);
-paintSlider(document.getElementById('paceSlider'));
 run();
 </script>
 </body>

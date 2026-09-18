@@ -62,14 +62,7 @@ button.p{background:var(--kb);border-color:var(--kb);color:#fff;font-weight:500}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) button.p{color:#06210f}}
 button.s{background:transparent}
 select,input[type=number]{width:100%;font-family:inherit;font-size:14px;padding:9px 10px;border-radius:10px;border:1px solid var(--line2);background:var(--card);color:var(--ink)}
-input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:99px;background:var(--line);margin:14px 0 6px;cursor:pointer;touch-action:none}
-input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:99px;background:transparent}
-input[type=range]::-moz-range-track{height:6px;border-radius:99px;background:var(--line)}
-input[type=range]::-moz-range-progress{height:6px;border-radius:99px 0 0 99px;background:var(--kb)}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:24px;height:24px;border-radius:50%;background:var(--kb);border:3px solid var(--card);box-shadow:0 1px 3px rgba(0,0,0,.3);margin-top:-9px;cursor:grab;transition:transform .12s ease,box-shadow .12s ease}
-input[type=range]::-webkit-slider-thumb:active{transform:scale(1.2);cursor:grabbing;box-shadow:0 2px 8px rgba(0,0,0,.35)}
-input[type=range]::-moz-range-thumb{width:24px;height:24px;border-radius:50%;background:var(--kb);border:3px solid var(--card);box-shadow:0 1px 3px rgba(0,0,0,.3);cursor:grab;transition:transform .12s ease}
-input[type=range]::-moz-range-thumb:active{transform:scale(1.2);cursor:grabbing}
+input[type=range]{width:100%;accent-color:var(--kb)}
 label.ck{display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:var(--ink2);cursor:pointer;margin-top:10px}
 label.ck input{margin-top:3px;accent-color:var(--kb)}
 .fl{margin-bottom:11px}
@@ -129,10 +122,8 @@ ul.rs li{margin-bottom:3px}
 </div>
 
 <script>
-var S={total:30000,paced:22000,mode:'balanced',weekUsed:1350,view:'home',src:'free',rcp:'mom',amt:2000,urg:false,last:null,
-  monthIdx:8,monthlyRisk:0.22};
-var MONTHS=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
-var RANGE={chill:[0.05,0.10],balanced:[0.15,0.20],aggressive:[0.25,0.30]};
+var S={total:30000,paced:22000,mode:'balanced',weekUsed:1350,view:'home',src:'free',rcp:'mom',amt:2000,urg:false,last:null};
+var RATE={chill:0.07,balanced:0.18,aggressive:0.28};
 var MODEN={chill:'Chill Saver',balanced:'Balanced Saver',aggressive:'Aggressive Saver'};
 var RCP={
  mom:{n:'แม่ (พร้อมเพย์)',d:'ผู้รับประจำ · โอนมาแล้ว 14 ครั้ง',risk:0,gnn:'อยู่ในกลุ่มบัญชีที่ไว้วางใจ'},
@@ -141,41 +132,16 @@ var RCP={
  mule:{n:'นาย ข. (ธนาคารอื่น)',d:'บัญชีใหม่ · เงินเข้า-ออกไวผิดปกติ',risk:0.45,gnn:'เชื่อมกับกลุ่มบัญชีม้า · fan-out 23 บัญชี/24 ชม.'}
 };
 function f(n){return '฿'+Math.round(n).toLocaleString('th-TH')}
-// อัตราออมจริงถูกเลือกภายในกรอบของโหมด โดย AI วิเคราะห์พฤติกรรมรายรับ-รายจ่ายของเดือนที่ผ่านมา
-// แล้วสรุปเป็น "ความเสี่ยงเงินขาดมือของเดือนนี้" (monthlyRisk) — คำนวณครั้งเดียวต่อเดือน ไม่ใช่ขยับตามการกดใช้เงินระหว่างเดือน
-// เสี่ยงต่ำ -> ขอบบนของกรอบ (ออมได้เต็มที่), เสี่ยงสูง -> ขอบล่าง (ไม่บีบตัวเองจนเกินไป)
-function pickRate(mode){
-  var r=RANGE[mode],risk=S.monthlyRisk;
-  var t=risk<0.15?1:risk<0.35?0.5:0;
-  return r[0]+(r[1]-r[0])*t;
-}
-function newMonth(){
-  S.monthIdx=(S.monthIdx+1)%12;
-  S.monthlyRisk=Math.random();
-  render();
-}
 function calc(){
   var p=S.paced, free=S.total-p;
   var fixed=Math.min(8400,p);
-  var save=Math.round((p-fixed)*pickRate(S.mode));
+  var save=Math.round((p-fixed)*RATE[S.mode]);
   var spend=p-fixed-save;
   var pace=Math.round(spend/4);
   return {free:free,fixed:fixed,save:save,spend:spend,pace:pace,left:Math.max(0,pace-S.weekUsed)};
 }
 function srcName(k){var c=calc();return k==='free'?'ยอดอิสระ':k==='spend'?'ใช้ได้ตามจังหวะ (K-Paced)':'เงินออม / สำรอง (K-Paced)'}
 function srcBal(k){var c=calc();return k==='free'?c.free:k==='spend'?c.spend:c.save}
-
-function paintSlider(el){
-  var pct=(+el.value-el.min)/(el.max-el.min)*100;
-  el.style.background='linear-gradient(to right,var(--kb) '+pct+'%,var(--line) '+pct+'%)';
-}
-function updatePaced(v){
-  S.paced=+v;
-  var slider=document.getElementById('pacedSlider');
-  paintSlider(slider);
-  document.getElementById('pacedAmt').textContent=f(S.paced);
-  document.getElementById('pacedFree').textContent=f(S.total-S.paced);
-}
 
 function render(){
   var c=calc(); document.getElementById('topAmt').textContent=f(S.total)+'.00';
@@ -194,18 +160,15 @@ function render(){
   }
   else if(S.view==='alloc'){
     h+='<button class="back" onclick="go(\'home\')">← กลับ</button>';
-    h+='<div class="sec"><div class="lab">ยกให้ K-Paced ดูแล</div><div class="amt" id="pacedAmt">'+f(S.paced)+'</div>';
-    h+='<input id="pacedSlider" type="range" min="0" max="30000" step="100" value="'+S.paced+'" oninput="updatePaced(this.value)">';
-    h+='<div class="tot"><span>ยอดอิสระที่เหลือ</span><b id="pacedFree">'+f(c.free)+'</b></div>';
+    h+='<div class="sec"><div class="lab">ยกให้ K-Paced ดูแล</div><div class="amt">'+f(S.paced)+'</div>';
+    h+='<input type="range" min="0" max="30000" step="1000" value="'+S.paced+'" oninput="S.paced=+this.value;render()">';
+    h+='<div class="tot"><span>ยอดอิสระที่เหลือ</span><b>'+f(c.free)+'</b></div>';
     h+='<div style="font-size:11.5px;color:var(--ink3)">ปรับได้ตลอดเวลา ถอนกลับมาเป็นยอดอิสระได้ทันที ไม่มีการล็อกถาวร</div></div>';
-    h+='<div class="sec"><div class="row"><div><div class="lab">AI วิเคราะห์พฤติกรรมเดือน '+MONTHS[S.monthIdx]+'</div><div class="amt" style="font-size:17px">ความเสี่ยงเงินขาดมือ '+Math.round(S.monthlyRisk*100)+'%</div></div>'+
-      '<button class="s" style="width:auto;padding:8px 12px;font-size:12.5px" onclick="newMonth()">จำลองเดือนถัดไป</button></div>'+
-      '<div style="font-size:11.5px;color:var(--ink3);margin-top:6px">มาจากการวิเคราะห์ประวัติรายรับ-รายจ่ายของเดือนก่อน ไม่เปลี่ยนตามการใช้เงินระหว่างเดือนนี้</div></div>';
     h+='<div class="sec"><div class="lab">โหมดการออม</div>';
     ['chill','balanced','aggressive'].forEach(function(m){
-      h+='<div style="margin-top:8px"><button class="'+(S.mode===m?'p':'s')+'" onclick="S.mode=\''+m+'\';render()">'+MODEN[m]+' · '+Math.round(RANGE[m][0]*100)+'–'+Math.round(RANGE[m][1]*100)+'%</button></div>';
+      h+='<div style="margin-top:8px"><button class="'+(S.mode===m?'p':'s')+'" onclick="S.mode=\''+m+'\';render()">'+MODEN[m]+' · '+Math.round(RATE[m]*100)+'%</button></div>';
     });
-    h+='<div style="font-size:11.5px;color:var(--ink3);margin-top:9px">คุณเลือกทิศทาง AI คำนวณตัวเลขจริงในกรอบนั้นให้เอง ตามพฤติกรรมเดือนนี้ (ดูด้านบน)</div></div>';
+    h+='<div style="font-size:11.5px;color:var(--ink3);margin-top:9px">คุณเลือกทิศทาง AI คำนวณตัวเลขจริงในแต่ละเดือนให้เอง</div></div>';
     h+='<button class="p" onclick="go(\'home\')">เสร็จสิ้น</button>';
   }
   else if(S.view==='transfer'){
@@ -230,8 +193,6 @@ function render(){
     h+='<button class="s" onclick="go(\'transfer\')">ลองเคสอื่น</button><div style="height:8px"></div><button class="p" onclick="go(\'home\')">กลับหน้าแรก</button>';
   }
   v.innerHTML=h;
-  var sl=document.getElementById('pacedSlider');
-  if(sl)paintSlider(sl);
   var ch=document.getElementById('chips');
   ch.innerHTML=[
     ['โอนให้แม่จากยอดอิสระ','free','mom',2000,false],
