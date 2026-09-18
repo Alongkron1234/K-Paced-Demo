@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>K-Paced — Shortfall Engine (Model 1 demo)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f2f3f0;--card:#fff;--card2:#f7f8f6;--ink:#16181a;--ink2:#5d6166;--ink3:#8b9096;
+  --line:#e2e5e1;--line2:#cbd0cb;--kb:#00a950;--kb-d:#00803d;--kb-soft:#e6f6ed;
+  --warn:#c77700;--warn-soft:#fdf2e0;--danger:#c62f2f;--danger-soft:#fdecec;--r:14px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#16181a;--card:#212426;--card2:#1a1d1f;--ink:#eceeec;--ink2:#a9aeb2;--ink3:#7c8186;
+  --line:#32363a;--line2:#454a4e;--kb:#3ecb81;--kb-d:#7ee0aa;--kb-soft:#12301f;
+  --warn:#e8a33c;--warn-soft:#332611;--danger:#f07070;--danger-soft:#33191a;}}
+:root[data-theme="dark"]{
+  --bg:#16181a;--card:#212426;--card2:#1a1d1f;--ink:#eceeec;--ink2:#a9aeb2;--ink3:#7c8186;
+  --line:#32363a;--line2:#454a4e;--kb:#3ecb81;--kb-d:#7ee0aa;--kb-soft:#12301f;
+  --warn:#e8a33c;--warn-soft:#332611;--danger:#f07070;--danger-soft:#33191a;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans Thai",system-ui,-apple-system,sans-serif;font-size:15px;line-height:1.6}
+.wrap{max-width:1140px;margin:0 auto;padding:28px 18px 56px}
+h1{font-size:23px;font-weight:600;margin:0 0 4px}
+.sub{color:var(--ink2);font-size:14px;margin:0 0 22px;max-width:76ch}
+.grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:880px){.grid{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px;margin-bottom:18px}
+.card h2{font-size:15px;font-weight:600;margin:0 0 2px}
+.card .cs{font-size:12.5px;color:var(--ink3);margin:0 0 14px}
+.big{font-size:44px;font-weight:600;letter-spacing:-1.5px;line-height:1.1;font-variant-numeric:tabular-nums}
+.stat{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-top:14px}
+.st{background:var(--card2);border-radius:10px;padding:10px 12px}
+.st .l{font-size:11.5px;color:var(--ink3)}
+.st .v{font-size:18px;font-weight:600;font-variant-numeric:tabular-nums}
+.lev{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.lev:first-of-type{border-top:none}
+.lev .n{font-size:13.5px}
+.lev .d{font-size:11.5px;color:var(--ink3);margin-top:1px}
+.dl{font-size:12.5px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;min-width:64px;text-align:right}
+button{font-family:inherit;font-size:13px;border-radius:9px;border:1px solid var(--line2);background:var(--card);color:var(--ink);padding:7px 13px;cursor:pointer;white-space:nowrap}
+button:hover{border-color:var(--kb)}
+button.on{background:var(--kb);border-color:var(--kb);color:#fff;font-weight:500}
+:root[data-theme="dark"] button.on{color:#06210f}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) button.on{color:#06210f}}
+input[type=range]{width:100%;accent-color:var(--kb)}
+.badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:99px;font-weight:500}
+.b-ok{background:var(--kb-soft);color:var(--kb-d)} .b-w{background:var(--warn-soft);color:var(--warn)} .b-d{background:var(--danger-soft);color:var(--danger)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+td{padding:7px 0;border-top:1px dashed var(--line);color:var(--ink2)}
+td.r{text-align:right;color:var(--ink);font-weight:500;font-variant-numeric:tabular-nums}
+tr:first-child td{border-top:none}
+.mini{font-size:12px;color:var(--ink3);border-top:1px solid var(--line);padding-top:12px;margin-top:12px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--ink3);margin-top:8px}
+.sw{display:inline-block;width:11px;height:11px;border-radius:3px;vertical-align:-1px;margin-right:5px}
+.chipwrap{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Shortfall Engine — สิ่งที่ Model 1 ควรตอบจริง ๆ</h1>
+<p class="sub">แทนที่จะบอกว่า "สัปดาห์นี้ใช้ได้เท่าไหร่" ระบบตอบว่า "โอกาสเงินขาดมือก่อนเงินเข้าครั้งหน้าเท่าไหร่" แล้วทุกคำแนะนำถูกวัดด้วยตัวเลขเดียวกัน หน้านี้รัน Monte Carlo 1,500 เส้นทางจริงในเบราว์เซอร์ ลองกดคันโยกด้านขวาแล้วดูตัวเลขซ้ายขยับ</p>
+
+<div class="grid">
+  <div>
+    <div class="card">
+      <h2>ความเสี่ยงเงินขาดมือก่อนเงินเดือนเข้า</h2>
+      <p class="cs">เหลืออีก <b id="dleft">17</b> วันถึงวันเงินเดือนออก (วันที่ 25) · ยอดใช้ได้ตอนนี้ <b id="bal">฿9,400</b></p>
+      <div class="big" id="pshort">—</div>
+      <div id="plabel"></div>
+      <div class="stat">
+        <div class="st"><div class="l">วันที่คาดว่าจะติดลบ</div><div class="v" id="dar">—</div></div>
+        <div class="st"><div class="l">วันที่น่าจะหมดก่อน</div><div class="v" id="dday">—</div></div>
+        <div class="st"><div class="l">ยอดคงเหลือกรณีแย่ (P10)</div><div class="v" id="p10">—</div></div>
+      </div>
+      <svg id="fan" viewBox="0 0 660 230" width="100%" style="margin-top:16px;display:block"></svg>
+      <div class="legend">
+        <span><span class="sw" style="background:var(--kb);opacity:.18"></span>ช่วง P10–P90</span>
+        <span><span class="sw" style="background:var(--kb)"></span>เส้นกลาง (P50)</span>
+        <span><span class="sw" style="background:var(--danger)"></span>เส้นศูนย์ — ต่ำกว่านี้คือขาดมือ</span>
+      </div>
+      <div class="mini">การกระจายตัวมาจาก Quantile Regression ของรายจ่ายรายวัน (มัธยฐาน ฿380 · P85 ฿620) รวมกับความไม่แน่นอนของรายได้แต่ละสาย จึงเป็นตัวเลขที่ rule-based ให้ไม่ได้</div>
+    </div>
+
+    <div class="card">
+      <h2>รายได้ที่วางแผนได้ ≠ รายได้ที่ได้รับ</h2>
+      <p class="cs">ระบบให้คะแนนความน่าเชื่อถือของรายได้แต่ละสาย แล้วนับเฉพาะส่วนที่วางแผนได้เข้าแผน</p>
+      <table id="inc"></table>
+      <div class="mini">เงินออมและยอดกันเงินคำนวณจากฐาน "รายได้ที่วางแผนได้" เท่านั้น รายได้ที่ผันผวนถูกใช้เป็นเบาะรองรับ ไม่ถูกผูกเป็นภาระประจำ</div>
+    </div>
+
+    <div class="card">
+      <h2>ส่งต่อให้ Model 2 — financial pressure index</h2>
+      <p class="cs">ค่าความเสี่ยงนี้ไม่ได้จบที่ฝั่งบริหารเงิน แต่ถูกส่งเป็นฟีเจอร์เข้าเครื่องตรวจจับกลโกง</p>
+      <div id="bridge"></div>
+      <div class="mini">คนที่กำลังร้อนเงินคือกลุ่มที่มิจฉาชีพล่าด้วยข้อเสนอ "งานเสริมรายได้ดี" ระบบจึงควรไวขึ้นกับคนกลุ่มนี้ ไม่ใช่ไวเท่ากันทุกคน</div>
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <h2>คันโยกที่ระบบมี</h2>
+      <p class="cs">ตัวเลขข้างขวาคือผลต่อความเสี่ยงถ้ากดตัวนั้น (หน่วย: จุด)</p>
+      <div class="chipwrap">
+        <button onclick="reset()">รีเซ็ตเป็นสถานการณ์ตั้งต้น</button>
+      </div>
+      <div id="levers"></div>
+    </div>
+
+    <div class="card">
+      <h2>ปรับจังหวะรายวัน</h2>
+      <p class="cs">ลดเพดานใช้จ่ายรายวันลง <b id="pacev">0%</b> จากมัธยฐานเดิม</p>
+      <input type="range" min="0" max="30" step="2" value="0" oninput="S.pace=+this.value;run()">
+      <div class="mini" id="pacenote"></div>
+    </div>
+
+    <div class="card">
+      <h2>ภาระที่กำลังจะเปลี่ยน</h2>
+      <p class="cs">Commitment Cliff — จุดที่ภาระผ่อนจบหรือเริ่ม</p>
+      <table id="cliff"></table>
+      <div class="mini">งวดสุดท้ายของการผ่อนคือช่วงที่เงินว่างขึ้นแบบถาวร ระบบจับจังหวะนี้แล้วดักไว้ก่อนที่มันจะไหลไปกับค่าใช้จ่ายใหม่</div>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+var S={pace:0,ot:true,free:true,reimb:false,topup:false,sink:false,wed:true};
+var DAYS=17,BAL=9400,MED=380,P85=620;
+var COMMIT=[{d:3,a:600,n:'ค่าเน็ต'},{d:5,a:750,n:'ค่าไฟ'},{d:10,a:1200,n:'ผ่อนมือถือ (งวดสุดท้าย)'}];
+var seed=987654321;
+function rnd(){seed=(1103515245*seed+12345)%2147483648;return seed/2147483648}
+function norm(){var u=1-rnd(),v=rnd();return Math.sqrt(-2*Math.log(u))*Math.cos(6.283185*v)}
+var MU=Math.log(MED),SG=(Math.log(P85)-Math.log(MED))/1.0364;
+
+function sim(o){
+  seed=987654321;
+  var N=1500,fail=0,darSum=0,failDaySum=0,failDayN=0,paths=[];
+  for(var d=0;d<=DAYS;d++)paths.push([]);
+  var sc=1-(o.pace/100);
+  for(var i=0;i<N;i++){
+    var b=BAL+(o.topup?2500:0),failed=false,dar=0,fday=0;
+    paths[0].push(b);
+    for(var d=1;d<=DAYS;d++){
+      b-=Math.exp(MU+SG*norm())*sc;
+      COMMIT.forEach(function(c){if(c.d===d)b-=c.a});
+      if(o.wed&&d===12)b-=o.sink?0:1000;
+      if(o.reimb&&d===2&&rnd()<0.92)b+=3200;
+      if(o.ot&&d===9&&rnd()<0.62)b+=2500;
+      if(o.free&&d===14&&rnd()<0.35)b+=4000;
+      paths[d].push(b);
+      if(b<0){if(!failed){failed=true;fday=d}dar++}
+    }
+    if(failed){fail++;failDaySum+=fday;failDayN++}
+    darSum+=dar;
+  }
+  var pc=function(arr,q){var a=arr.slice().sort(function(x,y){return x-y});return a[Math.floor(q*(a.length-1))]};
+  var band=paths.map(function(p){return[pc(p,0.1),pc(p,0.5),pc(p,0.9)]});
+  return{p:fail/N,dar:darSum/N,fday:failDayN?failDaySum/failDayN:0,band:band,p10end:pc(paths[DAYS],0.1)};
+}
+function f(n){return '฿'+Math.round(n).toLocaleString('th-TH')}
+
+var LEVERS=[
+ {k:'reimb',n:'หักกลบเงินที่เพื่อนจะโอนคืน',d:'จับคู่จ่ายก่อน–คืนทีหลัง เจอ ฿3,200 ที่ยังไม่นับ'},
+ {k:'topup',n:'ย้าย ฿2,500 จากยอดอิสระ',d:'ผู้ใช้เลือกเอง ไม่ใช่ระบบดึงอัตโนมัติ'},
+ {k:'sink',n:'ให้ถังตามฤดูกาลจ่ายซองงานแต่ง',d:'฿1,000 วันที่ 12 ไม่ต้องกินงบรายวัน'},
+ {k:'ot',n:'นับ OT เป็นรายได้ที่วางแผนได้',d:'ความน่าเชื่อถือ 62% — ระบบไม่แนะนำให้นับ'},
+ {k:'free',n:'นับงานฟรีแลนซ์เป็นรายได้ที่วางแผนได้',d:'ความน่าเชื่อถือ 35% — เสี่ยงสูงถ้าพึ่งพา'}
+];
+
+function run(){
+  var base=sim(S);
+  document.getElementById('pshort').textContent=Math.round(base.p*100)+'%';
+  var col=base.p<0.15?'var(--kb)':base.p<0.35?'var(--warn)':'var(--danger)';
+  document.getElementById('pshort').style.color=col;
+  var bc=base.p<0.15?'b-ok':base.p<0.35?'b-w':'b-d';
+  var bt=base.p<0.15?'ปลอดภัย — ไม่ต้องทำอะไร':base.p<0.35?'ควรปรับจังหวะเล็กน้อย':'เสี่ยงสูง — ควรลงมือก่อนสิ้นสัปดาห์';
+  document.getElementById('plabel').innerHTML='<span class="badge '+bc+'">'+bt+'</span>';
+  document.getElementById('dar').textContent=base.dar.toFixed(1)+' วัน';
+  document.getElementById('dday').textContent=base.fday?('วันที่ '+Math.round(base.fday)):'ไม่มี';
+  document.getElementById('p10').textContent=f(base.p10end);
+  document.getElementById('pacev').textContent=S.pace+'%';
+  document.getElementById('pacenote').textContent=S.pace===0?'ยังไม่ปรับ — ระบบจะไม่ลดเพดานเองถ้าความเสี่ยงยังต่ำกว่า 15%':'เพดานรายวันใหม่ '+f(MED*(1-S.pace/100))+' จากเดิม '+f(MED)+' ลดความเสี่ยงลง '+Math.round((sim(Object.assign({},S,{pace:0})).p-base.p)*100)+' จุด';
+
+  var lh='';
+  LEVERS.forEach(function(L){
+    var alt=Object.assign({},S);alt[L.k]=!alt[L.k];
+    var dp=(sim(alt).p-base.p)*100;
+    var sign=dp<0?'-':'+',c=dp<-0.5?'var(--kb)':dp>0.5?'var(--danger)':'var(--ink3)';
+    lh+='<div class="lev"><div><div class="n">'+L.n+'</div><div class="d">'+L.d+'</div></div>';
+    lh+='<div style="display:flex;align-items:center;gap:9px">';
+    lh+='<span class="dl" style="color:'+c+'">'+(Math.abs(dp)<0.5?'~0':sign+Math.abs(dp).toFixed(0))+' จุด</span>';
+    lh+='<button class="'+(S[L.k]?'on':'')+'" onclick="S.'+L.k+'=!S.'+L.k+';run()">'+(S[L.k]?'เปิด':'ปิด')+'</button></div></div>';
+  });
+  document.getElementById('levers').innerHTML=lh;
+
+  var inc=[['เงินเดือน','฿22,000','98%','วางแผนได้'],['OT','฿2,500','62%',S.ot?'นับเข้าแผน':'เป็นเบาะรองรับ'],['ฟรีแลนซ์','฿4,000','35%',S.free?'นับเข้าแผน':'เป็นเบาะรองรับ'],['เพื่อนโอนคืน','฿3,200','92%',S.reimb?'หักกลบแล้ว':'ยังไม่นับ']];
+  document.getElementById('inc').innerHTML=inc.map(function(r){
+    return '<tr><td>'+r[0]+'</td><td class="r">'+r[1]+'</td><td class="r" style="color:var(--ink2);font-weight:400">'+r[2]+'</td><td class="r" style="font-weight:400;color:var(--ink3)">'+r[3]+'</td></tr>'}).join('');
+
+  var pen=base.p<0.15?1.0:base.p<0.35?1.15:1.35;
+  document.getElementById('bridge').innerHTML=
+   '<table><tr><td>financial_pressure_index</td><td class="r">'+base.p.toFixed(2)+'</td></tr>'+
+   '<tr><td>ตัวคูณความไวของ Model 2</td><td class="r">×'+pen.toFixed(2)+'</td></tr>'+
+   '<tr><td>เกณฑ์เตือนสำหรับผู้ใช้รายนี้</td><td class="r">P(scam) ≥ '+(0.5/pen).toFixed(2)+'</td></tr></table>';
+
+  document.getElementById('cliff').innerHTML=
+   '<tr><td>ผ่อนมือถือ 0% — งวดสุดท้ายวันที่ 10</td><td class="r">+฿1,200/เดือน</td></tr>'+
+   '<tr><td>ระบบจะทำอะไรกับเงินที่ว่างขึ้น</td><td class="r">ดักเข้าออม 70%</td></tr>'+
+   '<tr><td>กยศ. เริ่มหักเดือน มี.ค. 2570</td><td class="r">-฿1,100/เดือน</td></tr>'+
+   '<tr><td>เตรียมล่วงหน้าตั้งแต่</td><td class="r">6 เดือนก่อน</td></tr>';
+
+  fan(base.band);
+}
+function fan(band){
+  var W=660,H=230,PL=44,PR=10,PT=12,PB=26,lo=-2500,hi=11000;
+  var X=function(d){return PL+(W-PL-PR)*d/DAYS},Y=function(v){return PT+(H-PT-PB)*(1-(v-lo)/(hi-lo))};
+  var s='',up='',dn='';
+  band.forEach(function(b,d){up+=(d?'L':'M')+X(d).toFixed(1)+' '+Y(b[2]).toFixed(1)+' '});
+  for(var d=band.length-1;d>=0;d--){dn+='L'+X(d).toFixed(1)+' '+Y(band[d][0]).toFixed(1)+' '}
+  s+='<path d="'+up+dn+'Z" fill="var(--kb)" opacity="0.18"/>';
+  var mid='';band.forEach(function(b,d){mid+=(d?'L':'M')+X(d).toFixed(1)+' '+Y(b[1]).toFixed(1)+' '});
+  s+='<path d="'+mid+'" fill="none" stroke="var(--kb)" stroke-width="2"/>';
+  s+='<line x1="'+PL+'" y1="'+Y(0)+'" x2="'+(W-PR)+'" y2="'+Y(0)+'" stroke="var(--danger)" stroke-width="1" stroke-dasharray="4 4"/>';
+  [0,4000,8000].forEach(function(v){
+    s+='<line x1="'+PL+'" y1="'+Y(v)+'" x2="'+(W-PR)+'" y2="'+Y(v)+'" stroke="var(--line)" stroke-width="1"/>';
+    s+='<text x="'+(PL-7)+'" y="'+(Y(v)+4)+'" text-anchor="end" font-size="10.5" fill="var(--ink3)">'+(v/1000)+'k</text>';
+  });
+  COMMIT.forEach(function(c){s+='<line x1="'+X(c.d)+'" y1="'+PT+'" x2="'+X(c.d)+'" y2="'+(H-PB)+'" stroke="var(--line2)" stroke-width="1" stroke-dasharray="2 4"/>'});
+  s+='<text x="'+PL+'" y="'+(H-8)+'" font-size="10.5" fill="var(--ink3)">วันนี้</text>';
+  s+='<text x="'+(W-PR)+'" y="'+(H-8)+'" text-anchor="end" font-size="10.5" fill="var(--ink3)">เงินเดือนเข้า</text>';
+  document.getElementById('fan').innerHTML=s;
+}
+function reset(){S={pace:0,ot:true,free:true,reimb:false,topup:false,sink:false,wed:true};document.querySelector('input[type=range]').value=0;run()}
+document.getElementById('bal').textContent=f(BAL);
+run();
+</script>
+</body>
+</html>
