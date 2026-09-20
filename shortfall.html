@@ -60,6 +60,21 @@ tr:first-child td{border-top:none}
 </style>
 </head>
 <body>
+<style>
+.topnav{max-width:1140px;margin:0 auto;padding:16px 18px 0;display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-family:"Noto Sans Thai",system-ui,sans-serif}
+.topnav .brand{font-weight:700;font-size:15px;color:var(--kb);margin-right:10px;letter-spacing:.3px}
+.topnav a{font-size:13px;text-decoration:none;color:var(--ink2);padding:6px 12px;border-radius:99px;border:1px solid transparent}
+.topnav a:hover{color:var(--ink);border-color:var(--line2)}
+.topnav a.on{background:var(--kb);color:#fff;font-weight:600}
+@media (prefers-color-scheme:dark){.topnav a.on{color:#062010}}
+</style>
+<nav class="topnav">
+  <span class="brand">K-PACED</span>
+  <a href="index.html" class="">แอป</a>
+  <a href="shortfall.html" class="on">โมเดลบริหารเงิน</a>
+  <a href="architecture.html" class="">โครงสร้างระบบ</a>
+</nav>
+
 <div class="wrap">
 <h1>Shortfall Engine — สิ่งที่ Model 1 ควรตอบจริง ๆ</h1>
 <p class="sub">แทนที่จะบอกว่า "สัปดาห์นี้ใช้ได้เท่าไหร่" ระบบตอบว่า "โอกาสเงินขาดมือก่อนเงินเข้าครั้งหน้าเท่าไหร่" แล้วทุกคำแนะนำถูกวัดด้วยตัวเลขเดียวกัน หน้านี้รัน Monte Carlo 1,500 เส้นทางจริงในเบราว์เซอร์ ลองกดคันโยกด้านขวาแล้วดูตัวเลขซ้ายขยับ</p>
