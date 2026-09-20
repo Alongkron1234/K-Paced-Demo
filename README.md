@@ -10,28 +10,32 @@ Prototype สำหรับ KBTG Kampus Hackathon 2026 — Track 2: Data Scienc
 
 ## ปัญหา
 
-First Jobbers (21–25 ปี) เจอปัญหาการเงินสองเรื่องพร้อมกันในช่วงเดียวกันของชีวิต
+First Jobbers (22–30 ปี) เจอปัญหาการเงินสองเรื่องพร้อมกันในช่วงเดียวกันของชีวิต
 
 1. **บริหารเงินเดือนก้อนแรกไม่เป็น** — ต้นเดือนใช้เยอะ กลางเดือนเริ่มร่อยหรอ สิ้นเดือนไม่เหลือ
-2. **ตกเป็นเป้าของ APP Scam** — Authorized Push Payment คือกลโกงที่เหยื่อกดยืนยันโอนเองด้วยความเต็มใจ ทำให้ระบบ anti-fraud เดิมที่ออกแบบมาจับมัลแวร์ตามไม่ทัน
+2. **ตกเป็นเป้าของมิจฉาชีพ** — Authorized Push Payment คือกลโกงที่เหยื่อกดยืนยันโอนเองด้วยความเต็มใจ ทำให้ระบบ anti-fraud เดิมที่ออกแบบมาจับความผิดปกติทั่วไปตามไม่ทัน
 
-ทั้งสองเรื่องเกิดกับคนกลุ่มเดียวกัน และปะทุในจังหวะเดียวกัน คือตอนเงินกำลังจะหมดหรือตอนอยากหาเงินเพิ่ม
+ทั้งสองเรื่องเกิดกับคนกลุ่มเดียวกัน และปะทุในจังหวะเดียวกัน คือตอนเงินกำลังจะหมดหรือตอนถูกกดดันให้ตัดสินใจเร็ว — คนที่กำลังเครียดเรื่องเงินมักตัดสินใจเร็วและถูกหลอกง่ายขึ้นในจังหวะเดียวกันพอดี
 
 ## แนวคิดหลัก
 
-K-PACED ไม่ได้เอาระบบออมกับระบบกันโกงมาวางคู่กัน แต่ใช้ **"จังหวะการเงินที่ผิดปกติของผู้ใช้"** เป็นสะพานเชื่อมสองระบบ โดยทั้งคู่ใช้ข้อมูลพฤติกรรมชุดเดียวกัน
+K-PACED ใช้โมเดลเดียว (**Shared Spending-Pattern Model**) เรียนรู้พฤติกรรมการใช้จ่ายจริงของผู้ใช้จากประวัติธุรกรรมใน K PLUS แล้วแตกออกเป็น 2 ความสามารถที่เชื่อมกันด้วยสัญญาณเดียว ไม่ใช่แค่ใช้ข้อมูลชุดเดียวกันเฉยๆ แต่ output ของฝั่งหนึ่งถูกป้อนเข้าเป็น input ของอีกฝั่งโดยตรง
 
 ```
-Transaction & Behavioral Data
+Transaction History (Metadata & MCC)
             ↓
-     Shared Feature Store
-        ↙         ↘
-   Model 1        Model 2
-Spending Guidance  Scam Detection
-   (Batch)        (Real-time)
+   Shared Spending-Pattern Model
+        ↙              ↘
+ Allocation Head    Shortfall Head
+ (จัดงบ +            (Monte Carlo →
+  ตรวจ anomaly)       % เงินขาดมือ)
+        ↘              ↙
+   financial_pressure_index
+            ↓
+  Adaptive Scam Protection (Model 2)
 ```
 
-ทำงานบนบัญชี K-eSavings เดิม ผู้ใช้ไม่ต้องเปิดบัญชีใหม่
+ทำงานบนบัญชี K PLUS เดิม ผู้ใช้ไม่ต้องเปิดบัญชีใหม่
 
 ---
 
@@ -55,50 +59,49 @@ Spending Guidance  Scam Detection
 
 **Commitment Cliff** — พยากรณ์จุดที่ภาระผ่อนจบหรือเริ่ม แล้วดักเงินที่ว่างขึ้นเข้าออมก่อนถูกกลืนด้วยค่าใช้จ่ายใหม่
 
-**ถังเงินคือเจตนาที่ผู้ใช้ประกาศไว้ล่วงหน้า** — ทำให้ Model 2 มีฟีเจอร์ที่ระบบ anti-fraud ทั่วไปไม่มี คือ intent–action mismatch
+**ความกดดันทางการเงินคือสัญญาณป้องกันการโกงด้วย** — ระบบกันโกงทั่วไปดูแค่ธุรกรรม แต่ K-PACED ส่ง "% โอกาสเงินขาดมือ" จาก Model 1 เข้าไปเป็นหนึ่งในสัญญาณของ Risk Score โดยตรง ทำให้การป้องกันเข้มขึ้นพอดีตอนผู้ใช้เปราะบางที่สุด
 
-**ถามเหตุผลระหว่างหน่วงรายการ** — ช่วงหน่วงไม่ใช่บทลงโทษ แต่เป็นหน้าต่างเก็บข้อมูลชิ้นที่มีค่าที่สุด และระบบไม่ได้เชื่อคำตอบเฉย ๆ แต่เอาไปเทียบกับข้อมูลที่ธนาคารมีอยู่แล้ว
+**ถามเหตุผลระหว่างหน่วงรายการ** — ช่วงหน่วงไม่ใช่บทลงโทษ แต่เป็นหน้าต่างเก็บข้อมูลชิ้นที่มีค่าที่สุด ระบบไม่ได้เชื่อคำตอบเฉยๆ แต่เอาไปเทียบทั้งกับ pattern สคริปต์หลอกลวงที่รู้จัก และเทียบไขว้กับคะแนนความเสี่ยงของบัญชีปลายทาง (GNN) เพื่อจับกรณีเหตุผลฟังดูปกติแต่ปลายทางเสี่ยงสูง
 
 ---
 
 ## สถาปัตยกรรมโมเดล
 
-### Model 1 — Dynamic Spending Predictor (batch)
+### Model 1 — Shared Spending-Pattern Model (batch, แตกเป็น 2 head)
 
-- Temporal Fusion Transformer / LightGBM Quantile Regression + Pinball Loss
-- ตั้งใจให้ทำนายค่อนไปทางเผื่อเหลือ เพราะให้งบน้อยเกินไปเจ็บกว่าให้มากเกินไป
-- Recurring Bill Detection ด้วย autocorrelation, MCC ย้อนหลัง 3–6 เดือน, spending volatility, future context
-- **Model 1B — Seasonal Liquidity Forecaster**: ปฏิทินสภาพคล่อง 12 เดือน สำหรับรายจ่ายที่รู้ล่วงหน้าแต่ไม่สม่ำเสมอ
+**Allocation Head**
+- ตรวจจับรายจ่ายประจำ (รายจ่ายคงที่) อัตโนมัติ ด้วย rule-based clustering + KMeans/DBSCAN (scikit-learn)
+- โมเดลการกระจายตัวของค่าใช้จ่ายรายวันด้วย **Quantile Regression** (LightGBM, `objective='quantile'`) ไม่ใช่แค่ค่าเฉลี่ย เพื่อกำหนดงบรายสัปดาห์ที่สมจริง
+- ตรวจจับธุรกรรมผิดปกติรายตัวด้วย **z-score** เทียบ baseline ต่อหมวดร้าน/merchant ของผู้ใช้เอง แล้วถามยืนยัน (เช่น "จ่ายแทนเพื่อน เดี๋ยวได้คืนไหม?")
+- กำหนดอัตราออมจริงภายในช่วงที่ผู้ใช้เลือก (Chill 5–10% / Balanced 15–20% / Aggressive 25–30%) โดย AI เลือกเปอร์เซ็นต์จริงในช่วงนั้นตามความเสี่ยง ณ ช่วงเวลานั้น — เสี่ยงต่ำ → ใกล้ขอบบนของช่วง, เสี่ยงสูง → ใกล้ขอบล่าง
 
-### Model 2 — Anomaly Transfer Intent Engine (real-time, target < 150 ms)
+**Shortfall Head**
+- จำลองกระแสเงินสดล่วงหน้าด้วย **Monte Carlo Simulation** (1,500 เส้นทางจำลอง, log-normal distribution พารามิเตอร์จาก median/P85 ของ Allocation Head) เพื่อประเมิน % โอกาสที่เงินจะหมดก่อนวันเงินเดือนออก
+- คำนวณ Income Reliability Score รายสายรายได้ จาก coefficient of variation ของแต่ละสาย (เงินเดือน/OT/ฟรีแลนซ์ ไม่ใช่ความน่าเชื่อถือเดียวกันทั้งหมด)
+- ไม่รันทุกธุรกรรม แต่รันเป็น batch รายวัน แล้ว refresh ก่อนกำหนดเฉพาะเมื่อมีสัญญาณผิดปกติ (สัญญาณเดียวกับ z-score ของ Allocation Head) — ยึดหลัก **"ไม่รัน AI โดยไม่มีเหตุผล"**
+- เมื่อพบความเสี่ยงขาดมือ เสนอ 3 ทางแก้ (ย้ายเงินจากยอดอิสระ / ลดงบรายวัน / นับเงินที่เพื่อนติดค้างจะคืน) เรียงตามผลที่ช่วยปิดช่องว่างได้มากสุด
 
-Dual-Trigger เป็นตัวปลุกแบบเบา ไม่ใช่ตัวตัดสิน
+**`financial_pressure_index`** = output ของ Shortfall Head (% โอกาสเงินขาดมือ) — ส่งต่อเป็นสัญญาณหนึ่งเข้า Model 2 โดยตรง
 
-1. High-Stakes Moment — ขอถอนจากเงินสำรอง
-2. Micro-transfer Velocity — โอนถี่ผิดปกติไปบัญชีปลายทางใหม่
+### Model 2 — Adaptive Scam Protection (real-time, ทำงานทุกธุรกรรม)
 
-เมื่อถูกปลุก โมเดลมองธุรกรรมจากหลายมุมพร้อมกัน
+รวม 4 สัญญาณเป็น **Risk Score เดียว (0–1)** ด้วยการบวกน้ำหนักตรงๆ (weighted sum) ไม่ใช่ ensemble หรือคูณกัน แล้ว cap ไม่เกิน 0.99
 
-| ชั้น | เทคนิค | จับอะไร |
-|---|---|---|
-| Behavioral | XGBoost | urgency dynamics, clipboard, สถานะสายโทรศัพท์ |
-| Sequential | LSTM | laddering — โอนน้อยทดสอบแล้วขยายเป็นก้อนใหญ่ |
-| Graph | GraphSAGE / RGCN | ความเชื่อมโยงกับกลุ่มบัญชีม้า, fan-out velocity |
-| Narrative | LLM | เหตุผลที่ผู้ใช้ตอบระหว่างหน่วง เทียบกับหลักฐานที่ธนาคารมี |
+| สัญญาณ | เทคนิค | ตรวจอะไร | น้ำหนัก |
+|---|---|---|---|
+| Graph Neural Network | embed บัญชีจากโครงสร้างเครือข่ายธุรกรรม (fan-in/fan-out ภายใน 24 ชม., อายุบัญชี) เทียบ pattern บัญชีม้าที่เคยพบ | ความเสี่ยงของบัญชีปลายทาง | 0 / 0.05 / 0.30 / 0.45 |
+| XGBoost | gradient boosted trees เทียบยอดโอนครั้งนี้กับ median/mean ของผู้ใช้คนนั้นเอง (dynamic threshold ต่อคน) | ยอดโอนผิดปกติเทียบประวัติผู้ใช้เอง | +0.16 (สูงกว่าปกติ 4–8 เท่า) / +0.28 (>8 เท่า) |
+| Rule-based | if-else ตรงไปตรงมา ไม่เทรนโมเดล | ยอดคงเหลือหลังโอนจะต่ำกว่าเป้าออมที่ Allocation Head ตั้งไว้เดือนนั้นหรือไม่ | +0.22 |
+| Shortfall % | มาจาก `financial_pressure_index` ของ Model 1 โดยตรง | ความกดดันทางการเงิน ณ ขณะนั้น | บวกตามสัดส่วน |
 
-- Focal Loss / Cost-Sensitive Learning สำหรับ extreme class imbalance
-- SHAP แปลงเป็นข้อความเตือนที่ผู้ใช้อ่านเข้าใจ
-- Graph embeddings คำนวณล่วงหน้าแบบ batch เก็บใน Feature Store — online layer แค่ดึงมา score
+**4 ระดับการตอบสนอง**
 
-### บันไดมาตรการ 5 ขั้น
+- **Low (< 0.25)** — ปล่อยผ่าน ไม่ทำอะไร
+- **Medium (0.25–0.50)** — แจ้งเตือนพร้อมเหตุผลที่ตรวจพบ (อธิบายด้วย SHAP values)
+- **High (0.50–0.75)** — หน่วงเวลา 3 นาที + บังคับกรอกเหตุผลการโอน → ส่งเข้า **LLM** (few-shot classification เทียบ scam pattern ที่รู้จัก เช่น อ้างเป็นเจ้าหน้าที่/การันตีผลตอบแทน/จ่ายล่วงหน้าเพื่อรับงาน) ร่วมกับดึงคะแนน **GNN ของบัญชีปลายทางเดียวกันมาเทียบไขว้ซ้ำ** (reuse ไม่ได้รันใหม่) เพื่อจับกรณีเหตุผลฟังดูปกติแต่ปลายทางเสี่ยงสูง → ตัดสินแค่ 2 ทาง: ปล่อยผ่าน หรือ ยกระดับเป็น Critical
+- **Critical (≥ 0.75 หรือถูกยกระดับจาก High)** — บล็อกธุรกรรม ต้องยืนยันตัวตนที่สาขาธนาคารเท่านั้นถึงทำรายการต่อได้
 
-1. ปล่อยรายการทันที (ตัดเวลารอที่เหลือ)
-2. แจ้งเตือนเป็นข้อความ
-3. ยืนยันตัวตนเพิ่ม
-4. หน่วง 2 ชั่วโมง + เจ้าหน้าที่ติดต่อกลับ
-5. ต้องทำรายการที่สาขา
-
-> LLM ผลิตค่า `narrative_risk` เป็นฟีเจอร์หนึ่งตัวเท่านั้น **ไม่มีอำนาจอนุมัติหรือระงับเงิน** การตัดสินใจยังอยู่ที่ระบบที่ตรวจสอบย้อนหลังได้
+หลักการเดียวกับ Shortfall Head: **LLM ทำงานเฉพาะกรณี High tier เท่านั้น** ไม่ใช่ทุกธุรกรรม — ยึดหลัก "ไม่รัน AI โดยไม่มีเหตุผล" ตลอดทั้งระบบ
 
 ---
 
@@ -107,11 +110,11 @@ Dual-Trigger เป็นตัวปลุกแบบเบา ไม่ใช
 | ความเสี่ยง | แนวทางบรรเทา |
 |---|---|
 | Cold Start — First Jobber ไม่มีประวัติ 3–6 เดือน | cohort-based baseline ก่อน แล้วค่อย personalize |
-| Latency 150 ms ร่วมกับ GNN | precompute graph embeddings แบบ batch, online ดึงมา score เท่านั้น |
-| False Positive | risk-based step-up ไม่ใช่ hard block, monitor FPR อย่างจริงจัง |
-| iOS จำกัด clipboard / in-call detection | เป็น secondary signal, core detection ใช้ in-app signals ที่เก็บได้ทุก platform |
-| Mule account ข้ามธนาคาร | เฟสแรกใช้กราฟภายในเครือ KBank, ข้ามธนาคารเป็น Phase 2 ตามทิศทาง Central Fraud Registry |
+| Latency ของ real-time scoring ร่วมกับ GNN | precompute graph embeddings แบบ batch, online ดึงมา score เท่านั้น ไม่รันกราฟใหม่ทุกธุรกรรม |
+| False Positive | risk-based step-up ตาม 4 tier ไม่ใช่ hard block ทุกกรณี, monitor FPR อย่างจริงจัง |
+| Mule account ข้ามธนาคาร | เฟสแรกใช้กราฟภายในเครือ K PLUS, ข้ามธนาคารเป็น Phase 2 ตามทิศทาง Central Fraud Registry |
 | ข้อความเหตุผลเป็นข้อมูลอ่อนไหว | ไม่เก็บ raw text เก็บเฉพาะ category ที่จำแนกได้ ต้องมี consent ตอน onboarding |
+| Rule-based พึ่งพาความแม่นยำของ Allocation Head | เป้าออมที่ผิดจะทำให้ flag ผิดตาม ต้อง monitor คุณภาพของ Allocation Head แยกต่างหาก |
 
 ---
 
@@ -121,7 +124,7 @@ Dual-Trigger เป็นตัวปลุกแบบเบา ไม่ใช
 - Average Savings Rate
 - Scam Recall / False Positive Rate
 - Fraud Loss Prevented
-- Emergency Buffer Untouched Rate
+- LLM Escalation Accuracy (สัดส่วนที่ตัดสิน release/escalate ตอน High tier ถูกต้อง)
 - Feature Adoption
 
 ---
@@ -142,11 +145,7 @@ open index.html
 2. Settings → Pages → Source เลือก branch `main` โฟลเดอร์ `/ (root)`
 3. รอสักครู่แล้วเข้าที่ `https://<username>.github.io/<repo-name>/`
 
-### Deploy ด้วย Netlify
 
-ลากโฟลเดอร์ทั้งหมดไปวางที่ [app.netlify.com/drop](https://app.netlify.com/drop)
-
----
 
 ## หมายเหตุ
 
