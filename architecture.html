@@ -73,6 +73,10 @@ label.ck input{margin-top:3px;accent-color:var(--kb)}
 .panel h2{font-size:15px;font-weight:600;margin:0 0 3px}
 .panel .ps{font-size:12.5px;color:var(--ink3);margin:0 0 14px}
 .logbox{background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:13px;margin-bottom:11px}
+.logbox.m1{border-left:3px solid var(--kb)}
+.logbox.m2{border-left:3px solid var(--danger)}
+.logsec{font-size:10.5px;font-weight:600;letter-spacing:.3px;color:var(--ink3);text-transform:uppercase;margin:16px 0 7px}
+.logsec:first-child{margin-top:0}
 .logbox .h{font-size:12px;font-weight:600;color:var(--ink);margin-bottom:7px;display:flex;justify-content:space-between;gap:8px}
 .logbox .h span{font-weight:400;color:var(--ink3)}
 .feat{display:flex;justify-content:space-between;font-size:12.5px;padding:4px 0;border-top:1px dashed var(--line);color:var(--ink2)}
@@ -113,8 +117,8 @@ ul.rs li{margin-bottom:3px}
 </nav>
 
 <div class="wrap">
-<h1>K-Paced — prototype บน K PLUS</h1>
-<p class="sub">เงินในบัญชี K-eSavings เดิมถูกแบ่งเป็นสองส่วน: ส่วนที่ยกให้ K-Paced ช่วยวางจังหวะ และยอดอิสระที่ใช้–โอนได้ตามปกติ ลองเลื่อนสัดส่วน แล้วลองโอนแต่ละเคสเพื่อดูว่าโมเดลไหนทำงานเมื่อไหร่</p>
+<h1>K-Paced — โครงสร้างระบบ</h1>
+<p class="sub">หน้านี้สำหรับอธิบายว่าโมเดลแต่ละตัวถูกใช้ตรงไหนบ้าง ไม่ใช่หน้าที่ user ทั่วไปจะเห็น (ดูหน้านั้นได้ที่แท็บ "แอป") ทุกตัวเลขในแผง "AI decision log" ด้านขวาคือค่าจริงที่คำนวณจากสถานะปัจจุบัน ลองกดปุ่มลัดเพื่อทดสอบเคสต่าง ๆ เร็ว ๆ ได้เลย</p>
 
 <div class="grid">
   <div class="phone">
@@ -131,14 +135,17 @@ ul.rs li{margin-bottom:3px}
     <h2>AI decision log</h2>
     <p class="ps">แผงนี้ไม่มีในแอปจริง — ใส่ไว้ให้เห็นว่าเบื้องหลังแต่ละการกดเกิดอะไรขึ้น</p>
     <div class="chips" id="chips"></div>
-    <div id="log"><p class="empty">ยังไม่มีเหตุการณ์ — ลองกดโอนเงินจากหน้าจอด้านซ้าย</p></div>
+    <div class="logsec">① บริหารเงิน — อัปเดตตลอดเวลา</div>
+    <div id="log1"></div>
+    <div class="logsec">② ป้องกันการโอนเสี่ยง — อัปเดตหลังกดโอน</div>
+    <div id="log2"><p class="empty">ยังไม่มีรายการโอน — ลองโอนเงินจากหน้าจอด้านซ้ายเพื่อดู Adaptive Scam Protection ทำงาน</p></div>
   </div>
 </div>
 </div>
 
 <script>
-var S={total:30000,paced:22000,mode:'balanced',weekUsed:1350,view:'home',src:'free',rcp:'mom',amt:2000,urg:false,last:null};
-var RATE={chill:0.07,balanced:0.18,aggressive:0.28};
+var S={total:30000,paced:22000,mode:'balanced',weekUsed:1350,view:'home',rcp:'mom',amt:2000,last:null};
+var RANGE={chill:[0.05,0.10],balanced:[0.15,0.20],aggressive:[0.25,0.30]};
 var MODEN={chill:'Chill Saver',balanced:'Balanced Saver',aggressive:'Aggressive Saver'};
 var RCP={
  mom:{n:'แม่ (พร้อมเพย์)',d:'ผู้รับประจำ · โอนมาแล้ว 14 ครั้ง',risk:0,gnn:'อยู่ในกลุ่มบัญชีที่ไว้วางใจ'},
@@ -147,21 +154,72 @@ var RCP={
  mule:{n:'นาย ข. (ธนาคารอื่น)',d:'บัญชีใหม่ · เงินเข้า-ออกไวผิดปกติ',risk:0.45,gnn:'เชื่อมกับกลุ่มบัญชีม้า · fan-out 23 บัญชี/24 ชม.'}
 };
 function f(n){return '฿'+Math.round(n).toLocaleString('th-TH')}
+// riskLevel ใช้แทนสถานะ "สบาย/ตึง/ไม่พอ" ของหน้า app demo แต่คำนวณจากจังหวะการใช้เงินของ S เอง
+// (ไม่พึ่งอัตราออมที่กำลังจะเลือก เพื่อเลี่ยงการคำนวณวนซ้ำกับ calc())
+function riskLevel(){
+  var fixed=Math.min(8400,S.paced);
+  var potential=Math.max(1,(S.paced-fixed)/4);
+  var ratio=S.weekUsed/potential;
+  if(ratio<=0.5)return 'ok';
+  if(ratio<=0.85)return 'am';
+  return 'dg';
+}
+// อัตราออมจริงถูกเลือกภายในกรอบของโหมด ตาม riskLevel ของสัปดาห์นี้ — เสี่ยงต่ำ -> ขอบบนของกรอบ, เสี่ยงสูง -> ขอบล่าง
+function pickRate(mode){
+  var r=RANGE[mode],k=riskLevel();
+  var t=k==='ok'?1:k==='am'?0.5:0;
+  return r[0]+(r[1]-r[0])*t;
+}
+// financial_pressure_index แบบย่อ: แปลง riskLevel เป็นค่า 0–1 แล้วบวกตรงเข้า Risk Score ของ Model 2
+function pressure(){
+  var k=riskLevel();
+  return k==='ok'?0.05:k==='am'?0.20:0.35;
+}
+function tier(score){return score<0.25?'low':score<0.5?'medium':score<0.75?'high':'critical'}
+function tierColor(score){return score<0.25?'var(--kb)':score<0.5?'var(--warn)':'var(--danger)'}
+function tierLabel(t){return t==='low'?'Low':t==='medium'?'Medium':t==='high'?'High':'Critical'}
 function calc(){
   var p=S.paced, free=S.total-p;
   var fixed=Math.min(8400,p);
-  var save=Math.round((p-fixed)*RATE[S.mode]);
+  var save=Math.round((p-fixed)*pickRate(S.mode));
   var spend=p-fixed-save;
   var pace=Math.round(spend/4);
   return {free:free,fixed:fixed,save:save,spend:spend,pace:pace,left:Math.max(0,pace-S.weekUsed)};
 }
-function srcName(k){var c=calc();return k==='free'?'ยอดอิสระ':k==='spend'?'ใช้ได้ตามจังหวะ (K-Paced)':'เงินออม / สำรอง (K-Paced)'}
-function srcBal(k){var c=calc();return k==='free'?c.free:k==='spend'?c.spend:c.save}
+// ไม่มีบัญชีแยกให้เลือกจริง ๆ (ใช้บัญชี K-eSavings เดียว) ระบบเลยเช็คเองว่าเงินจำนวนนี้จะเกินโควตาที่ปล่อยให้ใช้แบบไม่มีเงื่อนไข
+// (ยอดอิสระ + ส่วนที่เหลือของ "ใช้ได้ตามจังหวะ" เดือนนี้) หรือไม่ ถ้าเกิน แปลว่าต้องไปแตะเงินที่กันไว้จ่ายบิล/ออม -> Rule-based ทำงาน
+function available(){var c=calc();return c.free+Math.max(0,c.spend-S.weekUsed)}
 
+// อัปเดตทุกครั้งที่ render ไม่ว่าจะอยู่หน้าไหน (ไม่ต้องรอโอนเงิน) เพื่อให้เห็นว่า Allocation/Shortfall Head
+// คำนวณใหม่ทันทีตอนเลื่อนสัดส่วน สลับโหมดออม หรือกดปุ่มจำลองสัปดาห์ใช้เงินเกิน
+function renderModel1Log(){
+  var el=document.getElementById('log1');
+  if(!el)return;
+  var c=calc(),rl=riskLevel(),rlTxt=rl==='ok'?'สบาย':rl==='am'?'ตึง':'ไม่พอ',pr=pressure();
+  var h='<div class="logbox m1"><div class="h">Allocation / Shortfall Head <span>live · คำนวณใหม่ทุกครั้งที่แก้ไข</span></div>';
+  h+='<div class="feat"><span>โหมดออม '+MODEN[S.mode]+' · เลือกจากกรอบ '+Math.round(RANGE[S.mode][0]*100)+'–'+Math.round(RANGE[S.mode][1]*100)+'%</span><b>'+Math.round(pickRate(S.mode)*100)+'%</b></div>';
+  h+='<div class="feat"><span>เงินเก็บที่คำนวณได้เดือนนี้</span><b>'+f(c.save)+'</b></div>';
+  h+='<div class="feat"><span>สัปดาห์นี้ใช้ไปแล้ว '+f(S.weekUsed)+' จากจังหวะ '+f(c.pace)+'</span><b>สถานะ "'+rlTxt+'"</b></div>';
+  h+='<div class="feat" style="border:none"><span>Shortfall Pressure (ส่งเข้า Model 2 ทุกธุรกรรม)</span><b style="color:'+tierColor(pr)+'">+'+pr.toFixed(2)+'</b></div>';
+  if(S.lastAlloc){
+    h+='<div style="border-top:1px solid var(--line);margin-top:9px;padding-top:9px">';
+    h+='<div style="font-size:11px;color:var(--ink3);margin-bottom:5px">ผลของการโอนล่าสุด (ไปยัง '+S.lastAlloc.rcpName+' · '+f(S.lastAlloc.amt)+')</div>';
+    if(S.lastAlloc.touchesReserve){h+='<div class="feat"><span>ยอดนี้เกินโควตาที่ใช้ได้แบบไม่มีเงื่อนไข</span><b style="color:var(--danger)">แตะเงินสำรอง</b></div>'}
+    else if(S.lastAlloc.overBy>0){h+='<div class="feat"><span>เกินจังหวะสัปดาห์นี้ไป '+f(S.lastAlloc.overBy)+'</span><b style="color:var(--warn)">soft notice</b></div><div class="feat" style="border:none"><span>ไม่บล็อก แต่เกลี่ยงบที่เหลือให้</span><b>'+f(S.lastAlloc.overBy/3)+'/สัปดาห์</b></div>'}
+    else{h+='<div class="feat" style="border:none"><span>อยู่ในจังหวะที่แนะนำ</span><b style="color:var(--kb)">ผ่าน ไม่ต้องปรับแผน</b></div>'}
+    h+='</div>';
+  }
+  h+='</div>';
+  el.innerHTML=h;
+}
 function render(){
   var c=calc(); document.getElementById('topAmt').textContent=f(S.total)+'.00';
+  renderModel1Log();
   var v=document.getElementById('view'), h='';
   if(S.view==='home'){
+    var rl=riskLevel(),rlTag=rl==='ok'?'p-ok':rl==='am'?'p-am':'p-dg',rlTxt=rl==='ok'?'สบาย':rl==='am'?'ตึง':'ไม่พอ';
+    h+='<div class="sec"><div class="row"><div><div class="lab">Shortfall Pressure สัปดาห์นี้</div><div class="amt" style="font-size:17px">'+Math.round(pressure()*100)+'%</div></div><span class="tag '+rlTag+'" style="background:none">'+rlTxt+'</span></div>';
+    h+='<div style="font-size:11.5px;color:var(--ink2);margin-top:5px">ค่านี้บวกตรงเข้า Risk Score ของ Adaptive Scam Protection ทุกครั้งที่โอนเงิน — ลองกดปุ่มลัด "จำลองสัปดาห์ใช้เงินเกิน" ในแผงขวา แล้วกลับมาโอนเคสเดิมดู</div></div>';
     h+='<div class="sec"><div class="row"><div><div class="lab">บริหารด้วย K-Paced</div><div class="amt">'+f(S.paced)+'</div></div><span class="tag">'+MODEN[S.mode]+'</span></div>';
     h+='<div class="mini"><span>ค่าใช้จ่ายประจำ (ล็อกไว้จ่ายบิล)</span><b>'+f(c.fixed)+'</b></div>';
     h+='<div class="mini"><span>เงินออม / สำรองฉุกเฉิน</span><b>'+f(c.save)+'</b></div>';
@@ -181,92 +239,96 @@ function render(){
     h+='<div style="font-size:11.5px;color:var(--ink3)">ปรับได้ตลอดเวลา ถอนกลับมาเป็นยอดอิสระได้ทันที ไม่มีการล็อกถาวร</div></div>';
     h+='<div class="sec"><div class="lab">โหมดการออม</div>';
     ['chill','balanced','aggressive'].forEach(function(m){
-      h+='<div style="margin-top:8px"><button class="'+(S.mode===m?'p':'s')+'" onclick="S.mode=\''+m+'\';render()">'+MODEN[m]+' · '+Math.round(RATE[m]*100)+'%</button></div>';
+      h+='<div style="margin-top:8px"><button class="'+(S.mode===m?'p':'s')+'" onclick="S.mode=\''+m+'\';render()">'+MODEN[m]+' · '+Math.round(RANGE[m][0]*100)+'–'+Math.round(RANGE[m][1]*100)+'%</button></div>';
     });
-    h+='<div style="font-size:11.5px;color:var(--ink3);margin-top:9px">คุณเลือกทิศทาง AI คำนวณตัวเลขจริงในแต่ละเดือนให้เอง</div></div>';
+    h+='<div style="font-size:11.5px;color:var(--ink3);margin-top:9px">แต่ละโหมดคือ "กรอบ" AI เลือกเปอร์เซ็นต์จริงในกรอบนั้นจาก Shortfall Pressure ของสัปดาห์นี้ (ตอนนี้ '+Math.round(pressure()*100)+'%) — เสี่ยงต่ำ = ใกล้ขอบบน, เสี่ยงสูง = ใกล้ขอบล่าง</div></div>';
     h+='<button class="p" onclick="go(\'home\')">เสร็จสิ้น</button>';
   }
   else if(S.view==='transfer'){
     h+='<button class="back" onclick="go(\'home\')">← กลับ</button>';
-    h+='<div class="fl"><span>โอนจาก</span><select onchange="S.src=this.value;render()">';
-    ['free','spend','save'].forEach(function(k){h+='<option value="'+k+'"'+(S.src===k?' selected':'')+'>'+srcName(k)+' — '+f(srcBal(k))+'</option>'});
-    h+='</select></div>';
+    h+='<div class="sec"><div class="mini" style="border:none"><span>ยอดเงินทั้งหมดในบัญชี</span><b>'+f(S.total)+'</b></div>';
+    h+='<div class="mini"><span>ใช้ได้ตามจังหวะสัปดาห์นี้ (เหลือ)</span><b>'+f(c.left)+' จาก '+f(c.pace)+'</b></div>';
+    h+='<div style="font-size:11px;color:var(--ink3);margin-top:6px">ไม่มีบัญชีให้เลือกแยก — ระบบเช็คเองว่ายอดที่โอนจะเกินโควตาที่ใช้ได้แบบไม่มีเงื่อนไข ('+f(available())+') จนต้องไปแตะเงินที่กันไว้จ่ายบิล/ออมหรือไม่</div></div>';
     h+='<div class="fl"><span>โอนไปยัง</span><select onchange="S.rcp=this.value;render()">';
     Object.keys(RCP).forEach(function(k){h+='<option value="'+k+'"'+(S.rcp===k?' selected':'')+'>'+RCP[k].n+'</option>'});
     h+='</select><div style="font-size:11.5px;color:var(--ink3);margin-top:5px">'+RCP[S.rcp].d+'</div></div>';
     h+='<div class="fl"><span>จำนวนเงิน</span><input type="number" step="500" value="'+S.amt+'" oninput="S.amt=+this.value||0"></div>';
-    h+='<label class="ck"><input type="checkbox"'+(S.urg?' checked':'')+' onchange="S.urg=this.checked"><span>จำลองสัญญาณเร่ง: เปิดสายโทรศัพท์ค้างไว้ + วางเลขบัญชีจาก clipboard + กดยืนยันเร็วผิดปกติ</span></label>';
-    h+='<div style="height:12px"></div><button class="p" onclick="submit()">ยืนยันการโอน</button>';
+    h+='<div style="height:4px"></div><button class="p" onclick="submit()">ยืนยันการโอน</button>';
   }
   else if(S.view==='result'){
     var r=S.last;
-    h+='<div class="res '+r.cls+'"><div class="rt">'+r.title+'</div><div class="rb">'+r.body+'</div>';
-    if(r.reasons.length){h+='<ul class="rs">'+r.reasons.map(function(x){return '<li>'+x+'</li>'}).join('')+'</ul>'}
-    h+='</div>';
+    h+='<div class="res '+r.cls+'"><div class="rt">'+r.title+'</div><div class="rb">'+r.body+'</div></div>';
     if(r.pace){h+='<div class="res warn"><div class="rt">เกินจังหวะของสัปดาห์นี้</div><div class="rb">'+r.pace+'</div></div>'}
-    h+='<div class="sec"><div class="mini" style="border:none"><span>โอนจาก</span><b>'+srcName(r.src)+'</b></div><div class="mini"><span>ไปยัง</span><b>'+RCP[r.rcp].n+'</b></div><div class="mini"><span>จำนวน</span><b>'+f(r.amt)+'</b></div></div>';
+    h+='<div class="sec"><div class="mini" style="border:none"><span>โอนไปยัง</span><b>'+RCP[r.rcp].n+'</b></div><div class="mini"><span>จำนวน</span><b>'+f(r.amt)+'</b></div></div>';
+    h+='<div style="font-size:11.5px;color:var(--ink3);margin:-4px 0 12px">ดูรายละเอียดสัญญาณทั้งหมดในแผง "AI decision log" ด้านขวา</div>';
     h+='<button class="s" onclick="go(\'transfer\')">ลองเคสอื่น</button><div style="height:8px"></div><button class="p" onclick="go(\'home\')">กลับหน้าแรก</button>';
   }
   v.innerHTML=h;
   var ch=document.getElementById('chips');
-  ch.innerHTML=[
-    ['โอนให้แม่จากยอดอิสระ','free','mom',2000,false],
-    ['โอนก้อนใหญ่ไปบัญชีใหม่','free','nw',18000,false],
-    ['แตะเงินออม + ถูกเร่ง','save','mule',9000,true],
-    ['ใช้เกินจังหวะสัปดาห์','spend','friend',4000,false]
-  ].map(function(p,i){return '<button class="chip" onclick="preset('+i+')">'+p[0]+'</button>'}).join('');
+  ch.innerHTML=PRESETS.map(function(p,i){return '<button class="chip" onclick="preset('+i+')">'+p.label+'</button>'}).join('');
 }
-var PRE=[['free','mom',2000,false],['free','nw',18000,false],['save','mule',9000,true],['spend','friend',4000,false]];
-function preset(i){var p=PRE[i];S.src=p[0];S.rcp=p[1];S.amt=p[2];S.urg=p[3];S.view='transfer';render();}
+var PRESETS=[
+ {label:'โอนให้แม่ 2,000 (ปกติ)',rcp:'mom',amt:2000},
+ {label:'โอนยอดน้อยไปบัญชีเสี่ยง (mule)',rcp:'mule',amt:2000},
+ {label:'โอนก้อนใหญ่ไปบัญชีใหม่ 18,000',rcp:'nw',amt:18000},
+ {label:'โอนยอดสูงกว่าปกติ (คนรู้จัก)',rcp:'friend',amt:9000},
+ {label:'⚡ จำลองสัปดาห์ใช้เงินเกิน',action:'stress'},
+ {label:'↺ รีเซ็ตสัปดาห์',action:'reset'}
+];
+function preset(i){
+  var p=PRESETS[i];
+  if(p.action==='stress'){S.weekUsed=6000;render();return}
+  if(p.action==='reset'){S.weekUsed=1350;render();return}
+  S.rcp=p.rcp;S.amt=p.amt;S.view='transfer';render();
+}
 function go(v){S.view=v;render()}
 
+// Model 2 ทำงานทุกธุรกรรม (ไม่มี trigger gate) — รวม 4 สัญญาณเป็น Risk Score เดียวแบบ weighted sum ตรง ๆ
+// GNN (บัญชีปลายทาง) + XGBoost (ยอดผิดปกติ) + Rule-based (แตะเงินที่กันไว้) + Shortfall Pressure (จาก Model 1)
 function submit(){
-  var c=calc(),r=RCP[S.rcp],feats=[],score=0,reasons=[];
-  if(S.amt<=0||S.amt>srcBal(S.src)){
-    S.last={cls:'warn',title:'ยอดเงินไม่ถูกต้อง',body:'จำนวนเงินต้องมากกว่า 0 และไม่เกินยอดคงเหลือของแหล่งเงินที่เลือก',reasons:[],pace:null,src:S.src,rcp:S.rcp,amt:S.amt};
+  var c=calc(),r=RCP[S.rcp],avail=available();
+  if(S.amt<=0||S.amt>S.total){
+    S.last={cls:'warn',title:'ยอดเงินไม่ถูกต้อง',body:'จำนวนเงินต้องมากกว่า 0 และไม่เกินยอดเงินทั้งหมดในบัญชี',pace:null,rcp:S.rcp,amt:S.amt,tier:null};
     S.view='result';render();return;
   }
+  var touchesReserve=S.amt>avail;
   var paceMsg=null;
-  if(S.src==='spend'&&S.amt>c.left){
+  if(!touchesReserve&&S.amt>c.left){
     paceMsg='Model 1 ไม่บล็อกการโอน แต่จะเกลี่ยงบสัปดาห์ที่เหลือลงสัปดาห์ละ '+f((S.amt-c.left)/3)+' เพื่อให้เงินพอถึงสิ้นเดือน';
   }
   var ratio=S.amt/2000;
-  if(r.risk>0){score+=r.risk;feats.push(['GNN · ความเสี่ยงบัญชีปลายทาง','+'+r.risk.toFixed(2)]);reasons.push(r.gnn)}
-  if(ratio>=4){var a=ratio>=8?0.28:0.16;score+=a;feats.push(['XGBoost · ยอดสูงกว่าพฤติกรรมปกติ '+ratio.toFixed(1)+' เท่า','+'+a.toFixed(2)]);reasons.push('ยอดโอนสูงกว่าค่ากลางของคุณ '+ratio.toFixed(1)+' เท่า')}
-  if(S.src==='save'){score+=0.22;feats.push(['Trigger · High-stakes moment (แตะเงินออม)','+0.22']);reasons.push('กำลังดึงเงินออมที่ตั้งใจเก็บไว้ออกไป')}
-  if(S.src==='save'&&(S.rcp==='nw'||S.rcp==='mule')){score+=0.15;feats.push(['Intent mismatch · เจตนาที่ประกาศ ≠ ปลายทาง','+0.15']);reasons.push('เงินก้อนนี้คุณตั้งไว้เป็นเงินสำรอง แต่ปลายทางเป็นบัญชีบุคคลที่ไม่เคยโอน')}
-  if(S.urg){score+=0.25;feats.push(['XGBoost · urgency dynamics + clipboard','+0.25']);reasons.push('อยู่ระหว่างสายโทรศัพท์และกดยืนยันเร็วผิดปกติ')}
-  score=Math.min(0.99,score);
-  var triggered=(S.src==='save')||r.risk>0||ratio>=4||S.urg;
-  var lvl,cls,title,body;
-  if(!triggered){lvl='ไม่ปลุกโมเดล';cls='ok';title='โอนสำเร็จ';body='รูปแบบตรงกับพฤติกรรมปกติของคุณ ระบบไม่เรียก Model 2 ขึ้นมาประเมิน จึงไม่มีความหน่วงใด ๆ'}
-  else if(score<0.25){lvl='Low';cls='ok';title='โอนสำเร็จ';body='Model 2 ประเมินแล้วว่าความเสี่ยงต่ำ อนุมัติทันที'}
-  else if(score<0.5){lvl='Medium';cls='warn';title='ยืนยันอีกครั้งก่อนโอน';body='ระบบไม่บล็อก แต่แสดงเหตุผลเฉพาะเจาะจงให้คุณทบทวน'}
-  else if(score<0.75){lvl='High';cls='bad';title='หน่วงรายการไว้ 2 ชั่วโมง';body='ปลดล็อกก่อนกำหนดได้ด้วยการยืนยันตัวตนเพิ่ม (step-up verification)'}
-  else{lvl='Critical';cls='bad';title='ต้องยืนยันผ่านช่องทางที่ปลอดภัยกว่า';body='ระบบแนะนำให้ยืนยันที่สาขาหรือผ่านเจ้าหน้าที่ก่อนปล่อยรายการ'}
-  S.last={cls:cls,title:title,body:body,reasons:cls==='ok'?[]:reasons,pace:paceMsg,src:S.src,rcp:S.rcp,amt:S.amt};
-  writeLog(triggered,score,lvl,feats,paceMsg);
+  var gnn=r.risk;
+  var xgb=ratio>=8?0.28:ratio>=4?0.16:0;
+  var rule=touchesReserve?0.22:0;
+  var pr=pressure();
+  var score=Math.min(0.99,gnn+xgb+rule+pr);
+  var t=tier(score);
+  var criticalBody='รูปแบบนี้เสี่ยงสูงเกินกว่าจะปล่อยผ่านแอปได้';
+  if(xgb>0){criticalBody+=' — ยอดโอนนี้สูงกว่าพฤติกรรมการโอนปกติของคุณถึง '+ratio.toFixed(1)+' เท่า (เฉลี่ยปกติโอนครั้งละราว '+f(2000)+' ระบบนับว่า "สูง" ตั้งแต่ 4 เท่าขึ้นไป และ "สูงมาก" ตั้งแต่ 8 เท่าขึ้นไป)'}
+  var TXT={
+    low:{cls:'ok',title:'โอนสำเร็จ',body:'ทุกสัญญาณอยู่ในเกณฑ์ปกติ Model 2 อนุมัติทันที'},
+    medium:{cls:'warn',title:'ยืนยันอีกครั้งก่อนโอน',body:'ระบบไม่บล็อก แต่แสดงเหตุผลเฉพาะเจาะจงให้คุณทบทวนในแผงขวา'},
+    high:{cls:'bad',title:'หน่วงรายการไว้ 3 นาที',body:'ต้องตอบคำถามหรือยืนยันตัวตนเพิ่มก่อนปลดล็อกก่อนกำหนด (step-up verification)'},
+    critical:{cls:'bad',title:'ทำรายการที่สาขาเท่านั้น',body:criticalBody}
+  };
+  S.last={cls:TXT[t].cls,title:TXT[t].title,body:TXT[t].body,pace:paceMsg,rcp:S.rcp,amt:S.amt,tier:t};
+  S.lastAlloc={rcpName:r.n,amt:S.amt,touchesReserve:touchesReserve,overBy:Math.max(0,S.amt-c.left)};
+  writeLog(score,t,{gnn:gnn,xgb:xgb,rule:rule,pr:pr,ratio:ratio,rcpName:r.n},paceMsg);
   S.view='result';render();
 }
-function writeLog(trig,score,lvl,feats,paceMsg){
-  var col=score<0.25?'var(--kb)':score<0.5?'var(--warn)':'var(--danger)';
+function writeLog(score,t,sig,paceMsg){
+  var col=tierColor(score);
   var h='';
-  h+='<div class="logbox"><div class="h">Model 1 · Dynamic Spending Predictor <span>batch path</span></div>';
-  if(S.src==='free'){h+='<div class="feat"><span>แหล่งเงินอยู่นอกขอบเขต K-Paced</span><b>ไม่ทำงาน</b></div>'}
-  else if(paceMsg){h+='<div class="feat"><span>ยอดโอนเกินจังหวะที่แนะนำ</span><b>soft notice</b></div><div class="feat"><span>ปรับแผนสัปดาห์ที่เหลือ</span><b>re-balance</b></div>'}
-  else{h+='<div class="feat"><span>ยอดโอนอยู่ในจังหวะที่แนะนำ</span><b>ผ่าน</b></div>'}
+  h+='<div class="logbox m2"><div class="h">Adaptive Scam Protection <span>real-time · ทำงานทุกธุรกรรม</span></div>';
+  h+='<div class="feat"><span>GNN · ความเสี่ยงบัญชีปลายทาง ('+sig.rcpName+')</span><b>+'+sig.gnn.toFixed(2)+'</b></div>';
+  h+='<div class="feat"><span>XGBoost · ยอดโอนเทียบพฤติกรรมปกติ ('+sig.ratio.toFixed(1)+' เท่า)</span><b>+'+sig.xgb.toFixed(2)+'</b></div>';
+  h+='<div class="feat"><span>Rule-based · แตะเงินออม/สำรอง</span><b>'+(sig.rule?'+0.22':'ไม่เข้าเงื่อนไข')+'</b></div>';
+  h+='<div class="feat"><span>Shortfall Pressure (จากแผง Allocation/Shortfall Head ด้านบน)</span><b>+'+sig.pr.toFixed(2)+'</b></div>';
+  h+='<div class="gauge"><i style="width:'+Math.round(score*100)+'%;background:'+col+'"></i></div>';
+  h+='<div class="feat" style="border:none"><span>Risk Score</span><b style="color:'+col+'">'+score.toFixed(2)+' · '+tierLabel(t)+'</b></div>';
   h+='</div>';
-  h+='<div class="logbox"><div class="h">Model 2 · Anomaly Transfer Intent Engine <span>real-time</span></div>';
-  if(!trig){h+='<div class="feat"><span>ไม่เข้าเงื่อนไข trigger ทั้งสองแบบ</span><b>ไม่ถูกปลุก</b></div><div class="feat"><span>ประหยัด inference</span><b>0 ms</b></div>'}
-  else{
-    feats.forEach(function(x){h+='<div class="feat"><span>'+x[0]+'</span><b>'+x[1]+'</b></div>'});
-    h+='<div class="gauge"><i style="width:'+Math.round(score*100)+'%;background:'+col+'"></i></div>';
-    h+='<div class="feat" style="border:none"><span>P(scam)</span><b style="color:'+col+'">'+score.toFixed(2)+' · '+lvl+'</b></div>';
-    h+='<div class="feat"><span>inference latency (จำลอง)</span><b>'+(78+Math.round(Math.random()*40))+' ms</b></div>';
-  }
-  h+='</div>';
-  h+='<p class="note">ค่า contribution มาจาก SHAP ซึ่งเป็นตัวเดียวกับที่ถูกแปลงเป็นข้อความเตือนบนหน้าจอ ทำให้ทุกการหน่วงอธิบายได้ว่าเกิดจากปัจจัยอะไร</p>';
-  document.getElementById('log').innerHTML=h;
+  h+='<p class="note">Risk Score = GNN + XGBoost + Rule-based + Shortfall Pressure (บวกตรง ๆ cap ไม่เกิน 0.99) → Low &lt;0.25 / Medium 0.25–0.50 / High 0.50–0.75 / Critical ≥0.75</p>';
+  document.getElementById('log2').innerHTML=h;
 }
 render();
 </script>
