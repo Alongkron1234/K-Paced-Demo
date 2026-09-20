@@ -21,19 +21,19 @@ First Jobbers (22–30 ปี) เจอปัญหาการเงินส�
 
 K-PACED ใช้โมเดลเดียว (**Shared Spending-Pattern Model**) เรียนรู้พฤติกรรมการใช้จ่ายจริงของผู้ใช้จากประวัติธุรกรรมใน K PLUS แล้วแตกออกเป็น 2 ความสามารถที่เชื่อมกันด้วยสัญญาณเดียว ไม่ใช่แค่ใช้ข้อมูลชุดเดียวกันเฉยๆ แต่ output ของฝั่งหนึ่งถูกป้อนเข้าเป็น input ของอีกฝั่งโดยตรง
 
+```mermaid
+flowchart TD
+    A["Transaction History<br/>(Metadata & MCC)"] --> B["Shared Spending-Pattern Model"]
+    B --> C["Allocation Head<br/>จัดงบรายสัปดาห์ + ตรวจ anomaly"]
+    B --> D["Shortfall Head<br/>Monte Carlo → % โอกาสเงินขาดมือ"]
+    C -->|"เป้าออม / งบที่ตั้งไว้<br/>(ใช้โดย Rule-based)"| E["Adaptive Scam Protection<br/>(Model 2)"]
+    D -->|"financial_pressure_index"| E
+    E --> F["GNN + XGBoost + Rule-based + Shortfall %<br/>→ Risk Score 0–1 → 4 Tier"]
 ```
-Transaction History (Metadata & MCC)
-            ↓
-   Shared Spending-Pattern Model
-        ↙              ↘
- Allocation Head    Shortfall Head
- (จัดงบ +            (Monte Carlo →
-  ตรวจ anomaly)       % เงินขาดมือ)
-        ↘              ↙
-   financial_pressure_index
-            ↓
-  Adaptive Scam Protection (Model 2)
-```
+
+**อ่านง่ายๆ**: ข้อมูลธุรกรรมไหลเข้าโมเดลเดียว (Shared Spending-Pattern Model) แล้วแตกเป็น 2 หัว — **Allocation Head** จัดงบและตรวจจับความผิดปกติของรายจ่าย ส่วน **Shortfall Head** คำนวณ % โอกาสเงินขาดมือ ผลลัพธ์ของทั้งสองหัว (เป้าออมจาก Allocation Head + `financial_pressure_index` จาก Shortfall Head) ถูกส่งต่อเป็นสัญญาณเข้า **Model 2** โดยตรง เพื่อคำนวณ Risk Score ของทุกธุรกรรมโอนเงิน — นี่คือจุดที่ทำให้ระบบบริหารเงินกับระบบกันโกงเป็นเนื้อเดียวกัน ไม่ใช่สองฟีเจอร์แยกกัน
+
+> หมายเหตุ: ไดอะแกรมด้านบนเป็น Mermaid — เปิดดูเป็นรูปได้อัตโนมัติเมื่ออยู่บน GitHub, GitLab หรือตัว editor ที่รองรับ (VS Code + extension, Obsidian ฯลฯ) ถ้าเปิดเป็น plain text จะเห็นเป็นโค้ดแทน
 
 ทำงานบนบัญชี K PLUS เดิม ผู้ใช้ไม่ต้องเปิดบัญชีใหม่
 
@@ -146,6 +146,7 @@ open index.html
 3. รอสักครู่แล้วเข้าที่ `https://<username>.github.io/<repo-name>/`
 
 
+---
 
 ## หมายเหตุ
 
